@@ -63,11 +63,52 @@ curl -X POST http://127.0.0.1:5100/api/tweet/comprehensive \
 ```
 
 ### 其他API端点
+
+**基础功能**
 ```bash
-GET  /api/v1/health              # 健康检查
-GET  /api/v1/auth/status         # 认证状态
-POST /api/v1/auth/refresh        # 刷新Cookie
-GET  /api/v1/data-sources/status # 数据源状态
+GET  /api/v1/health                    # 健康检查
+GET  /api/v1/tweet/{id}/views          # 获取推文浏览量
+GET  /api/v1/tweet/{id}                # 获取推文信息
+GET  /api/v1/tweet/{id}/engagement     # 获取推文互动率
+POST /api/v1/tweets/views              # 批量获取浏览量
+```
+
+**用户功能**
+```bash
+GET  /api/v1/user/{username}           # 获取用户信息
+GET  /api/v1/user/{username}/tweets    # 获取用户推文
+GET  /api/v1/search?q=keyword          # 搜索推文
+```
+
+**管理功能**
+```bash
+GET  /api/v1/auth/status               # 认证状态
+POST /api/v1/auth/refresh              # 刷新Cookie
+GET  /api/v1/data-sources/status       # 数据源状态
+POST /api/v1/data-sources/reset        # 重置数据源
+```
+
+**批量功能**
+```bash
+POST /api/v1/tweet/by-url              # 通过URL获取推文
+POST /api/v1/tweets/by-urls            # 批量通过URL获取推文
+```
+
+**使用示例**
+```bash
+# 获取推文浏览量
+curl http://127.0.0.1:5100/api/v1/tweet/123456/views
+
+# 获取用户信息
+curl http://127.0.0.1:5100/api/v1/user/elonmusk
+
+# 搜索推文
+curl "http://127.0.0.1:5100/api/v1/search?q=AI&count=10"
+
+# 批量获取浏览量
+curl -X POST http://127.0.0.1:5100/api/v1/tweets/views \
+  -H "Content-Type: application/json" \
+  -d '{"tweet_ids": ["123456", "789012"]}'
 ```
 
 ## 🐳 生产部署
