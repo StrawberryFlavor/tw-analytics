@@ -1,0 +1,78 @@
+# 示例：如何在Docker网络中使用TW Analytics API服务
+version: '3.8'
+
+# 使用外部网络，连接到tw-analytics-api服务所在的网络
+networks:
+  docker-network:
+    external: true
+    name: docker-network
+
+services:
+  # 示例1：一个需要使用TW Analytics API的Web应用
+  web-app:
+    image: nginx:alpine
+    container_name: web-app
+    ports:
+      - "80:80"  # Web应用可以对外暴露端口
+    networks:
+      - docker-network
+    environment:
+      # 在Docker网络内，使用容器名作为主机名
+      - TWITTER_API_URL=http://tw-analytics-api:5100
+    depends_on:
+      - tw-analytics-client
+
+  # 示例2：一个后端服务使用TW Analytics API
+  backend-service:
+    image: python:3.11-slim
+    container_name: backend-service
+    networks:
+      - docker-network
+    environment:
+      - TWITTER_API_HOST=tw-analytics-api
+      - TWITTER_API_PORT=5100
+    command: |
+      python -c "
+      import requests
+      # 在Docker网络内访问TW Analytics API
+      response = requests.get('http://tw-analytics-api:5100/api/v1/health')
+      print(f'API Health: {response.json()}')
+      "
+
+  # 示例3：使用Python客户端的服务
+  tw-analytics-client:
+    image: python:3.11-slim
+    container_name: tw-analytics-client
+    networks:
+      - docker-network
+    volumes:
+      - ./app:/app
+    working_dir: /app
+    environment:
+      # 设置客户端连接到内部API
+      - TWITTER_API_BASE_URL=http://tw-analytics-api:5100
+    command: |
+      python -c "
+      from client import TwitterClient
+      # 使用内部网络地址初始化客户端
+      client = TwitterClient(
+          bearer_token='not-used',  # 在内部网络中可能不需要token
+          base_url='http://tw-analytics-api:5100'
+      )
+      # 使用API
+      health = client.check_health()
+      print(f'Health Check: {health}')
+      "
+
+# 使用说明：
+# 1. 首先启动TW Analytics API服务：
+#    docker-compose -f docker-compose.yml up -d
+#
+# 2. 然后启动使用API的服务：
+#    docker-compose -f docker-compose.example.yml up -d
+#
+# 注意事项：
+# - 在Docker网络内，使用容器名 'tw-analytics-api' 作为主机名
+# - 端口是5100（容器内部端口）
+# - 不需要映射端口，因为通信在Docker网络内进行
+# - 外部无法直接访问TW Analytics API服务

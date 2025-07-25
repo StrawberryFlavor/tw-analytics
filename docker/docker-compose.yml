@@ -1,0 +1,40 @@
+networks:
+  docker-network:
+    name: docker-network
+    external: true
+
+services:
+  tw-analytics-api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: tw-analytics-api
+    # 开发环境暴露端口到主机
+    ports:
+      - "${PORT:-5100}:5100"
+    env_file:
+      - ../.env
+    volumes:
+      - "../instance:/app/instance"  # 挂载Cookie目录
+    environment:
+      - TWITTER_BEARER_TOKEN=${TWITTER_BEARER_TOKEN}
+      - TWITTER_USERNAME=${TWITTER_USERNAME}
+      - TWITTER_PASSWORD=${TWITTER_PASSWORD}
+      - FLASK_ENV=${FLASK_ENV:-production}
+      - SECRET_KEY=${SECRET_KEY:-production-secret-key}
+      - HOST=0.0.0.0
+      - PORT=5100
+      - PLAYWRIGHT_HEADLESS=true
+      - MAX_TWEETS_PER_REQUEST=${MAX_TWEETS_PER_REQUEST:-100}
+      - MAX_BATCH_SIZE=${MAX_BATCH_SIZE:-50}
+      - DEFAULT_TWEET_COUNT=${DEFAULT_TWEET_COUNT:-10}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    networks:
+      - docker-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5100/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
