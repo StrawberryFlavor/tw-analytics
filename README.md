@@ -99,10 +99,14 @@ python run.py
 ### 🐳 Docker部署
 
 ```bash
-# 先本地登录获取cookies
+# 推荐方式：使用一键部署脚本
+./scripts/deploy.sh
+
+# 手动方式：
+# 1. 先本地登录获取cookies
 python login_twitter.py
 
-# Docker部署（挂载cookies）
+# 2. Docker部署（挂载cookies）
 docker run -d -p 5100:5100 \
   -v $(pwd)/instance:/app/instance \
   --name tw-analytics-api tw-analytics-app
@@ -133,31 +137,47 @@ curl http://127.0.0.1:5100/api/v1/tweet/1234567890123456789/views
 curl http://127.0.0.1:5100/api/v1/user/elonmusk
 ```
 
-## Docker部署（内部网络）
+## 🐳 Docker生产部署
 
 ### 环境要求
 - Docker
 - Docker Compose
 
-### 部署说明
+### 🚀 一键部署（推荐）
 
-**⚠️ 重要**: Docker部署配置为内部网络访问，不对外暴露端口。服务运行在端口5100上，只能通过Docker网络名`docker-network`访问。
+```bash
+# 使用自动化部署脚本
+./scripts/deploy.sh
 
-### 快速部署
+# 查看部署日志
+docker-compose -f docker/docker-compose.yml logs -f
+```
+
+### 手动部署步骤
 
 ```bash
 # 1. 配置环境变量
 cp .env.example .env
-# 编辑 .env 文件，设置 TWITTER_BEARER_TOKEN
+# 编辑 .env 文件，设置必要的环境变量
 
-# 2. 启动服务
+# 2. 获取认证Cookie（如需完整功能）
+python login_twitter.py
+
+# 3. 启动服务
 docker-compose -f docker/docker-compose.yml up -d
 
-# 3. 查看服务状态
+# 4. 查看服务状态
 docker-compose -f docker/docker-compose.yml ps
 ```
 
-### Docker网络访问
+### 重要配置说明
+
+**⚠️ 网络配置**: 
+- 默认配置为内部网络访问，通过Docker网络名`docker-network`访问
+- 开发环境可通过 `PORT` 环境变量暴露端口到主机
+- 生产环境建议保持内部网络访问，通过负载均衡器或API网关暴露
+
+### 容器间通信
 
 服务启动后，其他Docker容器可以通过以下方式访问：
 
@@ -165,11 +185,19 @@ docker-compose -f docker/docker-compose.yml ps
 # 容器内访问地址
 http://tw-analytics-api:5100
 
-# 示例：在其他容器中使用API
+# 健康检查示例
 docker run --rm \
   --network docker-network \
   curlimages/curl \
   curl http://tw-analytics-api:5100/api/v1/health
+
+# 综合数据提取示例
+docker run --rm \
+  --network docker-network \
+  curlimages/curl \
+  curl -X POST http://tw-analytics-api:5100/api/tweet/comprehensive \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://x.com/user/status/123456"}'
 ```
 
 ### 在应用中集成
@@ -249,14 +277,16 @@ client = TwitterClient("your_bearer_token")  # 直接传入
 - `GET /api/v1/tweet/{tweet_id}` - 获取推特完整信息
 - `GET /api/v1/tweet/{tweet_id}/engagement` - 获取推文互动率
 - `POST /api/v1/tweets/views` - 批量获取推文浏览量
-- `POST /api/tweet/comprehensive` - 🆕 **综合数据提取** - 一次获取页面所有数据
+- `POST /api/tweet/comprehensive` - 🆕 **综合数据提取** - 一次获取完整推文线程和相关推文
 
 #### 🆕 综合数据提取接口详解
 
 **功能特点：**
 - ⚡ **高效提取** - 一次页面加载获取所有可见数据
-- 📊 **全面数据** - 主推文、线程、回复、用户信息一应俱全
+- 📊 **全面数据** - 主推文、线程推文、相关推文一应俱全
 - 🛡️ **降级保护** - 多层错误处理确保服务可用性
+- 🎯 **智能选择** - 自动选择最有价值的推文作为主推文
+- 📈 **质量评分** - 基于内容长度、互动数据等指标评估推文质量
 
 **请求格式：**
 ```bash
@@ -265,69 +295,78 @@ curl -X POST http://127.0.0.1:5100/api/tweet/comprehensive \
   -H "Content-Type: application/json" \
   -d '{"url": "https://x.com/elonmusk/status/1234567890123456789"}'
 
-# 简洁格式（推荐）- 去除冗余字段，数据结构更清晰
+# 实际示例
 curl -X POST http://127.0.0.1:5100/api/tweet/comprehensive \
   -H "Content-Type: application/json" \
-  -d '{"url": "https://x.com/elonmusk/status/1234567890123456789"}'
+  -d '{"url": "https://x.com/jiji_eth/status/1947860842286121062"}'
 
 ```
 
-**响应数据结构（优化格式）：**
+**响应数据结构（简洁格式）：**
 ```json
 {
   "success": true,
   "data": {
     "tweet": {
-      "id": "1234567890123456789",
-      "text": "推文内容...",
+      "id": "1947860842286121062",
+      "text": "三天拉了三倍，我不信会有散户在车上",
       "author": {
-        "username": "elonmusk",
-        "name": "Elon Musk",
-        "avatar": "https://pbs.twimg.com/profile_images/...",
+        "username": "jiji_eth",
+        "name": "Crypto小余",
+        "avatar": "https://pbs.twimg.com/profile_images/1656128584715735040/X59hrvHM_normal.jpg",
         "verified": true
       },
-      "time": "2025-07-23T04:24:48.000Z",
-      "type": "original",
-      "quality_score": "high",
+      "time": "2025-07-23T03:26:28.000Z",
+      "type": "normal",
+      "content_type": "original",
+      "quality_score": "medium",
       "metrics": {
-        "views": 1500000,
-        "likes": 25000,
-        "retweets": 5000,
-        "replies": 1200,
-        "quotes": 800,
-        "bookmarks": 3000
+        "views": 11,
+        "replies": 115,
+        "retweets": 9,
+        "likes": 94,
+        "bookmarks": 1300000000,
+        "quotes": 0
       },
       "media": [
         {
           "type": "image",
-          "url": "https://pbs.twimg.com/media/...",
-          "alt_text": "图像"
+          "url": "https://pbs.twimg.com/media/GwgxHQkbEAULzKC?format=jpg&name=small",
+          "alt_text": "Image",
+          "format": "jpg"
         }
       ],
-      "links": [
-        {
-          "url": "https://example.com",
-          "text": "外部链接"
-        }
-      ],
-      "hashtags": ["#AI", "#Tesla"],
-      "mentions": ["@someone"],
-      "language": "en"
+      "links": [],
+      "hashtags": [],
+      "mentions": ["@jiji_eth"]
     },
     "thread": [],
-    "related": [],
+    "related": [
+      {
+        "id": "1947889057285214475",
+        "text": "资金费0.3了",
+        "author": {
+          "username": "jiechen60120611",
+          "name": "Btc世界最优质的资产",
+          "avatar": "https://pbs.twimg.com/profile_images/1874505506217459712/uH8mH6eJ_normal.jpg",
+          "verified": false
+        },
+        "quality_score": "medium"
+      }
+      // ... 更多相关推文
+    ],
     "context": {
       "page_type": "tweet",
-      "theme": "light",
-      "language": "zh"
+      "theme": "unknown",
+      "language": "en"
     },
     "meta": {
       "source": "Playwright",
-      "load_time": "8.61s",
-      "timestamp": "2025-07-24T20:29:29.326888"
+      "load_time": "14.42s",
+      "timestamp": "2025-07-25T09:51:03.159392"
     }
   },
-  "message": "综合数据提取完成"
+  "message": "Comprehensive data extraction completed"
 }
 ```
 
@@ -413,10 +452,19 @@ curl -X POST http://127.0.0.1:5100/api/tweet/comprehensive \
 - `page_context`: 页面上下文信息（页面类型、语言、主题等）
 - `extraction_metadata`: 提取过程的元数据信息
 
+**数据提取特性：**
+- **主推文**: 智能选择页面中最有价值的推文作为主推文
+- **线程推文**: 提取同一作者的连续推文线程
+- **相关推文**: 获取页面上的所有其他推文（回复、转发等）
+- **推文类型**: `type` 字段标识推文类型（normal-普通、reply-回复、retweet-转发、quote-引用）
+- **内容类型**: `content_type` 字段标识内容来源（original-原创、primary-主要内容）
+- **质量评分**: `quality_score` 字段基于文本长度、互动数据、媒体内容等评估质量（high-高、medium-中、low-低）
+
 **特殊场景处理：**
-- **回复推文**: 如果提供的URL是回复推文，系统会智能选择最有价值的推文作为主推文，并在 `meta.target_tweet` 中记录原始请求的推文信息
-- **推文类型**: `type` 字段标识推文类型（original-原创、reply-回复、retweet-转发、quote-引用）
-- **质量评分**: `quality_score` 字段评估内容质量（high-高质量、medium-中等、low-低质量）
+- **引用推文**: 提取并统一显示被引用的推文内容
+- **回复推文**: 包含回复上下文和被回复的推文信息
+- **转发推文**: 显示原推文作者和转发操作信息
+- **智能降级**: 访客模式下提取公开内容，登录模式下获取完整数据
 
 #### 用户相关
 - `GET /api/v1/user/{username}` - 获取用户信息
@@ -561,14 +609,14 @@ for tweet_id, views in views_data.items():
 - `PLAYWRIGHT_HEADLESS`: 是否无头模式（默认true，开发时可设为false）
 - `PLAYWRIGHT_PROXY`: 代理地址，支持 http://, https://, socks5://
 
-### 🍪 Cookie持久化策略 🆕
-系统现在支持智能Cookie管理，**无需手动重新登录**：
+### 🍪 Cookie管理和认证 🆕
+系统支持智能Cookie管理，提供**完整的认证状态监控**：
 
-**自动化特性：**
-- ✅ **智能检测** - 自动检测Cookie有效性（每小时检查一次）
-- ✅ **自动刷新** - Cookie过期时自动重新登录
-- ✅ **健康监控** - 提供Cookie状态监控API
-- ✅ **零干预** - 配置好环境变量后完全自动化
+**Cookie管理特性：**
+- ✅ **状态监控** - 实时监控Cookie有效性和数量
+- ✅ **自动检测** - 检测Cookie文件存在性和内容完整性
+- ✅ **手动刷新** - 支持强制刷新Cookie认证
+- ✅ **降级支持** - 无Cookie时自动降级为访客模式
 
 **使用方式：**
 ```bash
@@ -593,9 +641,9 @@ curl -X POST http://127.0.0.1:5100/api/v1/auth/refresh
 
 **认证状态说明：**
 - `healthy` - Cookie有效，工作正常
-- `aging` - Cookie较旧但仍有效，建议关注
-- `needs_validation` - 需要验证Cookie有效性
+- `empty_cookies` - Cookie文件存在但内容为空或无效
 - `no_cookies` - 没有Cookie文件，需要首次登录
+- `aging` - Cookie较旧但仍有效，建议关注
 
 ### 🎭 Playwright代理配置示例
 ```bash
@@ -622,11 +670,19 @@ PLAYWRIGHT_PROXY=https://127.0.0.1:7890
 
 ## 🔍 系统工作原理
 
+### 多数据源智能切换
 1. **优先使用Twitter API** - 数据准确，速度快
 2. **智能检测限流** - 监控API调用失败率
 3. **自动切换数据源** - 限流时切换到Playwright爬虫
 4. **无感知体验** - 用户端完全透明
 5. **自动恢复** - 限流解除后切回官方API
+
+### 综合数据提取流程
+1. **页面加载** - 使用Playwright加载完整推文页面
+2. **内容解析** - 提取主推文、线程、相关推文
+3. **数据清洗** - 统一数据格式，过滤无效内容
+4. **智能分类** - 区分推文类型，评估内容质量
+5. **结构化输出** - 返回标准化的JSON数据结构
 
 ## 📋 注意事项
 
@@ -637,7 +693,129 @@ PLAYWRIGHT_PROXY=https://127.0.0.1:7890
 5. **代理配置**：只有设置`PLAYWRIGHT_PROXY`才使用代理，不会自动使用系统代理
 6. **调试模式**：设置`PLAYWRIGHT_HEADLESS=false`可显示浏览器窗口用于调试
 7. **生产部署**：建议Docker并挂载cookies文件
-8. **🆕 Cookie自动管理**：配置登录凭据后系统会自动维护Cookie，无需手动干预
+8. **🆕 认证状态监控**：提供Cookie状态检查和手动刷新功能
+9. **🔧 故障排除**：遇到Cookie问题可通过 `/api/v1/auth/status` 诊断
+
+## 💡 故障排除
+
+### Cookie问题诊断
+
+```bash
+# 检查Cookie状态
+curl http://127.0.0.1:5100/api/v1/auth/status
+
+# 响应示例
+{
+  "data": {
+    "authentication": {
+      "auto_refresh_enabled": true,
+      "cookie_count": 7,
+      "cookie_file_exists": true,
+      "has_cached_cookies": true
+    },
+    "status": "healthy"  // 或 "empty_cookies", "no_cookies"
+  },
+  "success": true
+}
+
+# 如果显示 empty_cookies 或 no_cookies
+# 重新登录获取Cookie
+python login_twitter.py
+
+# 手动刷新Cookie（如果配置了认证信息）
+curl -X POST http://127.0.0.1:5100/api/v1/auth/refresh
+```
+
+### Docker部署问题
+
+```bash
+# 检查容器内Cookie文件
+docker exec tw-analytics-api ls -la /app/instance/
+
+# 检查容器内Cookie内容
+docker exec tw-analytics-api cat /app/instance/twitter_cookies.json
+
+# 检查容器内服务状态
+docker exec tw-analytics-api curl http://localhost:5100/api/v1/auth/status
+
+# 如果Cookie有问题，复制本地有效Cookie到容器
+docker cp ./instance/twitter_cookies.json tw-analytics-api:/app/instance/
+
+# 重启容器让新Cookie生效
+docker-compose -f docker/docker-compose.yml restart
+```
+
+### 常见问题和解决方案
+
+#### ❌ API返回空的相关推文
+**症状**: `related` 字段为空数组，只能获取主推文
+**原因**: Cookie无效或为访客级别，无法访问完整页面内容
+**解决方案**:
+```bash
+# 1. 检查认证状态
+curl http://127.0.0.1:5100/api/v1/auth/status
+# 2. 如果status不是"healthy"，重新登录
+python login_twitter.py
+# 3. 验证修复结果
+curl -X POST http://127.0.0.1:5100/api/tweet/comprehensive \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://x.com/user/status/123456"}'
+```
+
+#### ❌ Docker容器中Cookie数量为0
+**症状**: `"cookie_count": 0` 且 `"status": "empty_cookies"`
+**原因**: Volume挂载问题或Cookie文件损坏
+**解决方案**:
+```bash
+# 1. 检查volume挂载配置
+cat docker/docker-compose.yml | grep -A2 -B2 instance
+# 2. 确认挂载路径正确
+docker exec tw-analytics-api ls -la /app/instance/
+# 3. 重新获取Cookie
+python login_twitter.py
+# 4. 验证Cookie有效性
+docker exec tw-analytics-api curl http://localhost:5100/api/v1/auth/status
+```
+
+#### ❌ 线上线下数据不一致
+**症状**: 本地能提取11条相关推文，线上只有8条
+**原因**: 
+- 认证级别不同（访客 vs 登录用户）
+- 时间差异导致的内容变化
+- 地理位置导致的推荐差异
+**解决方案**:
+```bash
+# 1. 统一认证状态
+# 将本地有效Cookie复制到线上
+scp ./instance/twitter_cookies.json user@server:/path/to/instance/
+# 2. 重启服务
+sudo docker-compose -f docker/docker-compose.yml restart
+# 3. 对比认证状态
+curl http://127.0.0.1:5100/api/v1/auth/status  # 本地
+curl http://server:5100/api/v1/auth/status      # 线上
+```
+
+#### ❌ mentions字段包含无效用户
+**症状**: mentions包含 `@i` 等无效用户名
+**原因**: 旧版本的mentions过滤逻辑
+**解决方案**: 确保使用最新代码版本，mentions过滤已优化
+
+### 调试技巧
+
+```bash
+# 启用详细日志
+export LOG_LEVEL=DEBUG
+python run.py
+
+# 检查数据源状态
+curl http://127.0.0.1:5100/api/v1/data-sources/status
+
+# 测试完整流程
+curl -X POST http://127.0.0.1:5100/api/tweet/comprehensive \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://x.com/jiji_eth/status/1947860842286121062"}' \
+  | jq '.data.related | length'  # 检查相关推文数量
+```
 
 ## 许可证
 
