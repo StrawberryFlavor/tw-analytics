@@ -24,7 +24,7 @@ if __name__ == '__main__':
     host = os.getenv('HOST', '0.0.0.0')
     port = int(os.getenv('PORT', 5100))
     
-    print(f"🚀 启动TW Analytics API服务")
-    print(f"📡 http://{host}:{port}")
+    print("启动 TW Analytics API 服务")
+    print(f"地址: http://{host}:{port}")
     
     serve(application, host=host, port=port, threads=4)

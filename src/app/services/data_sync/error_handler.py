@@ -140,19 +140,15 @@ class SyncErrorHandler:
     def log_error_analysis(self, analysis: ErrorAnalysis, tweet_url: str):
         """记录错误分析结果"""
         
-        # 根据分析结果选择日志级别和emoji
+        # 根据分析结果选择日志级别，保持简洁
         if analysis.category == ErrorCategory.TECHNICAL_ERROR:
-            emoji = "🔧"
-            self.logger.error(f"{emoji} 技术错误 - {analysis.reason}: {tweet_url}")
+            self.logger.error(f"技术错误 - {analysis.reason}: {tweet_url}")
         elif analysis.category == ErrorCategory.CONTENT_ERROR:
-            emoji = "📝"
-            self.logger.info(f"{emoji} 内容问题 - {analysis.reason}: {tweet_url}")
+            self.logger.info(f"内容问题 - {analysis.reason}: {tweet_url}")
         elif analysis.category == ErrorCategory.RATE_LIMIT:
-            emoji = "🚨"
-            self.logger.warning(f"{emoji} 风控检测 - {analysis.reason}: {tweet_url}")
+            self.logger.warning(f"风控检测 - {analysis.reason}: {tweet_url}")
         else:
-            emoji = "❓"
-            self.logger.warning(f"{emoji} 未知错误 - {analysis.reason}: {tweet_url}")
+            self.logger.warning(f"未知错误 - {analysis.reason}: {tweet_url}")
     
     def should_mark_submission_invalid(self, analysis: ErrorAnalysis) -> bool:
         """判断是否应该标记submission为无效"""

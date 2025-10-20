@@ -218,7 +218,7 @@ class TweetDataExtractor(BaseExtractor):
                 
                 # 如果不是最后一次尝试，执行页面刷新重试
                 if attempt < max_retries:
-                    self.logger.info(f"🔄 模拟F5刷新页面，准备重试...")
+                    self.logger.info("模拟 F5 刷新页面，准备重试")
                     try:
                         await self.page.reload(wait_until='domcontentloaded', timeout=10000)
                         # 给页面一些时间加载

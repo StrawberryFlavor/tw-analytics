@@ -64,23 +64,23 @@ class MultiURLViewBooster:
         self.screenshot_manager = ScreenshotManager(screenshot_config)
         screenshot_stats = self.screenshot_manager.get_stats()
         if screenshot_stats.get('enabled'):
-            self.logger.info(f"📸 截图功能已启用 (环境: {config.screenshot_env})")
+            self.logger.info(f"截图功能已启用 (环境: {config.screenshot_env})")
             if screenshot_stats.get('debug_mode'):
-                self.logger.info(f"🔍 调试模式: 每{screenshot_config.debug_interval}次截图")
+                self.logger.info(f"调试模式: 每 {screenshot_config.debug_interval} 次截图")
             else:
-                self.logger.info(f"🎯 生产模式: 每{screenshot_config.milestone_interval}次里程碑截图")
+                self.logger.info(f"生产模式: 每 {screenshot_config.milestone_interval} 次里程碑截图")
         else:
-            self.logger.info("❌ 截图功能已禁用")
+            self.logger.info("截图功能已禁用")
         
         # 初始化代理池
         self.proxy_pool = ProxyPool(enabled=config.use_proxy_pool)
         if config.use_proxy_pool:
             stats = self.proxy_pool.get_stats()
-            self.logger.info(f"🌐 代理池已启用: {stats['total_proxies']}个代理可用")
+            self.logger.info(f"代理池已启用: 可用代理 {stats['total_proxies']} 个")
             if stats['total_proxies'] > 0:
-                self.logger.info(f"📍 代理示例: {self.proxy_pool.proxies[0][:60]}...")
+                self.logger.info(f"代理示例: {self.proxy_pool.proxies[0][:60]}...")
         else:
-            self.logger.info("❌ 代理池已禁用")
+            self.logger.info("代理池已禁用")
         
         # 信号处理 - 只在主线程中设置
         try:
@@ -139,7 +139,7 @@ class MultiURLViewBooster:
     async def create_browser_instance(self, account: Account, instance_id: int, urls: List[str]):
         """创建浏览器实例（支持多标签页）"""
         try:
-            self.logger.info(f"🔧 创建实例 {instance_id} ({account.username}) - 处理 {len(urls)} 个URL")
+            self.logger.info(f"创建实例 {instance_id} ({account.username}) - 处理 {len(urls)} 个 URL")
             
             playwright = await async_playwright().start()
             
@@ -170,9 +170,9 @@ class MultiURLViewBooster:
                 proxy_url = self.proxy_pool.get_proxy_for_instance(instance_id)
                 if proxy_url:
                     proxy_config = self._parse_proxy_url(proxy_url)
-                    self.logger.info(f"🌐 实例 {instance_id} 将使用代理池代理: {proxy_config['server']}")
+                    self.logger.info(f"实例 {instance_id} 使用代理池代理: {proxy_config['server']}")
                 else:
-                    self.logger.warning(f"⚠️ 代理池启用但未获取到代理，实例 {instance_id} 将不使用代理")
+                    self.logger.warning(f"代理池启用但未获取到代理，实例 {instance_id} 将不使用代理")
             elif self.config.proxy:
                 # 使用单一代理
                 if not self.config.proxy.startswith(('http://', 'https://', 'socks5://')):
@@ -180,10 +180,10 @@ class MultiURLViewBooster:
                 else:
                     proxy_url = self.config.proxy
                 proxy_config = self._parse_proxy_url(proxy_url)
-                self.logger.info(f"🌐 实例 {instance_id} 将使用单一代理: {proxy_config['server']}")
+                self.logger.info(f"实例 {instance_id} 使用单一代理: {proxy_config['server']}")
             
             if not proxy_config:
-                self.logger.info(f"🚫 实例 {instance_id} 不使用代理")
+                self.logger.info(f"实例 {instance_id} 不使用代理")
             
             browser = await playwright.chromium.launch(**browser_args)
             
@@ -196,7 +196,7 @@ class MultiURLViewBooster:
             # 代理配置只在context中设置
             if proxy_config:
                 context_args["proxy"] = proxy_config
-                self.logger.info(f"✅ 实例 {instance_id} 代理配置已设置到browser context")
+                self.logger.info(f"实例 {instance_id} 代理配置已设置到 browser context")
             
             context = await browser.new_context(**context_args)
             
@@ -214,7 +214,7 @@ class MultiURLViewBooster:
                     'first_load': True
                 }
                 tabs.append(tab_info)
-                self.logger.info(f"📑 创建标签页 {tab_info['tab_id']} -> {url}")
+                self.logger.info(f"创建标签页 {tab_info['tab_id']} -> {url}")
             
             instance = {
                 'instance_id': instance_id,
@@ -227,11 +227,11 @@ class MultiURLViewBooster:
                 'errors_count': 0
             }
             
-            self.logger.info(f"✅ 实例 {instance_id} 创建成功，包含 {len(tabs)} 个标签页")
+            self.logger.info(f"实例 {instance_id} 创建成功，包含 {len(tabs)} 个标签页")
             return instance
             
         except Exception as e:
-            self.logger.error(f"❌ 创建实例 {instance_id} 失败: {e}")
+            self.logger.error(f"创建实例 {instance_id} 失败: {e}")
             return None
     
     async def setup_auth_token(self, context: BrowserContext, auth_token: str):
@@ -270,7 +270,7 @@ class MultiURLViewBooster:
         url = tab_info['url']
         tab_id = tab_info['tab_id']
         
-        self.logger.info(f"🔄 标签页 {tab_id} ({username}) 访问 {url}")
+        self.logger.info(f"标签页 {tab_id} ({username}) 访问 {url}")
         
         # 重试机制：最多尝试3次
         for attempt in range(3):
@@ -280,7 +280,7 @@ class MultiURLViewBooster:
                 # 添加随机延迟避免频率限制
                 if attempt > 0:
                     delay = random.uniform(3.0, 8.0) * (attempt + 1)
-                    self.logger.info(f"⏰ 第{attempt + 1}次尝试，延迟{delay:.1f}秒...")
+                    self.logger.info(f"第 {attempt + 1} 次尝试，延迟 {delay:.1f} 秒")
                     await asyncio.sleep(delay)
                 
                 # 智能截图：页面加载前状态（仅调试模式）
@@ -297,27 +297,27 @@ class MultiURLViewBooster:
                             self.logger.warning(f"加载前截图失败: {e}")
                 
                 if tab_info['first_load']:
-                    self.logger.info(f"🌐 首次加载页面: {url}")
+                    self.logger.info(f"首次加载页面: {url}")
                     response = await page.goto(url, wait_until="domcontentloaded", timeout=45000)
-                    self.logger.info(f"📡 响应状态: {response.status if response else 'No response'}")
+                    self.logger.info(f"响应状态: {response.status if response else 'No response'}")
                     tab_info['first_load'] = False
                 else:
-                    self.logger.info(f"🔄 刷新页面: {url}")
+                    self.logger.info(f"刷新页面: {url}")
                     response = await page.reload(wait_until="domcontentloaded", timeout=30000)
-                    self.logger.info(f"📡 响应状态: {response.status if response else 'No response'}")
+                    self.logger.info(f"响应状态: {response.status if response else 'No response'}")
                 
                 # 检查页面URL和标题
                 current_url = page.url
                 title = await page.title()
-                self.logger.info(f"📍 当前URL: {current_url}")
-                self.logger.info(f"📄 页面标题: {title}")
+                self.logger.info(f"当前URL: {current_url}")
+                self.logger.info(f"页面标题: {title}")
                 
                 # 等待页面真正加载完成
                 try:
                     await page.wait_for_load_state("networkidle", timeout=15000)
-                    self.logger.info(f"✅ 页面网络空闲")
+                    self.logger.info("页面网络空闲")
                 except Exception as e:
-                    self.logger.warning(f"⚠️ 等待网络空闲超时: {e}")
+                    self.logger.warning(f"等待网络空闲超时: {e}")
                 
                 # 页面加载后随机等待
                 await asyncio.sleep(random.uniform(3.0, 6.0))
@@ -352,7 +352,7 @@ class MultiURLViewBooster:
                                 if html_path:
                                     with open(html_path, 'w', encoding='utf-8') as f:
                                         f.write(content[:20000])  # 保存前20000字符
-                                    self.logger.debug(f"📝 HTML快照: {html_path}")
+                                    self.logger.debug(f"HTML快照: {html_path}")
                             except Exception as html_error:
                                 self.logger.debug(f"HTML保存失败: {html_error}")
                         
@@ -367,23 +367,23 @@ class MultiURLViewBooster:
                 self.account_manager.mark_account_as_used(username)
                 
                 access_time = time.time() - start_time
-                self.logger.info(f"✅ 标签页 {tab_id} 访问成功 (总计: {tab_info['views_count']}, 进度: {self.stats['successful_views']}/{self.config.target_views}, 用时: {access_time:.1f}s)")
+                self.logger.info(f"标签页 {tab_id} 访问成功 (总计: {tab_info['views_count']}, 进度: {self.stats['successful_views']}/{self.config.target_views}, 用时: {access_time:.1f}s)")
                 
                 return True
                 
             except Exception as e:
                 error_msg = str(e)
                 if "ERR_CONNECTION_RESET" in error_msg:
-                    self.logger.warning(f"⚠️ 标签页 {tab_id} 连接重置 (尝试 {attempt + 1}/3): {error_msg}")
+                    self.logger.warning(f"标签页 {tab_id} 连接重置 (尝试 {attempt + 1}/3): {error_msg}")
                 elif "ERR_PROXY_CONNECTION_FAILED" in error_msg:
-                    self.logger.warning(f"⚠️ 标签页 {tab_id} 代理连接失败 (尝试 {attempt + 1}/3): {error_msg}")
+                    self.logger.warning(f"标签页 {tab_id} 代理连接失败 (尝试 {attempt + 1}/3): {error_msg}")
                 else:
-                    self.logger.warning(f"⚠️ 标签页 {tab_id} 访问失败 (尝试 {attempt + 1}/3): {error_msg}")
+                    self.logger.warning(f"标签页 {tab_id} 访问失败 (尝试 {attempt + 1}/3): {error_msg}")
                 
                 # 如果是最后一次尝试，记录为失败并可能截图
                 if attempt == 2:
                     self.stats['failed_views'] += 1
-                    self.logger.error(f"❌ 标签页 {tab_id} 三次尝试均失败")
+                    self.logger.error(f"标签页 {tab_id} 三次尝试均失败")
                     
                     # 错误截图
                     try:
@@ -407,7 +407,7 @@ class MultiURLViewBooster:
         account = instance['account']
         tabs = instance['tabs']
         
-        self.logger.info(f"🚀 启动实例 {instance_id} ({account.username})，管理 {len(tabs)} 个标签页")
+        self.logger.info(f"启动实例 {instance_id} ({account.username})，管理 {len(tabs)} 个标签页")
         
         try:
             while (self.running and 
@@ -420,7 +420,7 @@ class MultiURLViewBooster:
                     
                     # 检查是否达到目标
                     if self.stats['successful_views'] >= self.config.target_views:
-                        self.logger.info(f"🎯 已达到目标浏览量 {self.config.target_views}，停止实例 {instance_id}")
+                        self.logger.info(f"已达到目标浏览量 {self.config.target_views}，停止实例 {instance_id}")
                         break
                     
                     if self.running:
@@ -438,7 +438,7 @@ class MultiURLViewBooster:
         """清理实例资源"""
         try:
             instance_id = instance['instance_id']
-            self.logger.info(f"🧹 清理实例 {instance_id}")
+            self.logger.info(f"清理实例 {instance_id}")
             
             for tab_info in instance.get('tabs', []):
                 if 'page' in tab_info and tab_info['page']:
@@ -472,7 +472,7 @@ class MultiURLViewBooster:
     
     async def start_boost(self, urls: List[str]) -> Dict[str, Any]:
         """启动多URL浏览量提升"""
-        self.logger.info("🎯 Twitter多URL浏览量提升器启动")
+        self.logger.info("Twitter多URL浏览量提升器启动")
         
         if not urls:
             return {"success": False, "error": "没有配置目标URL"}
@@ -491,7 +491,7 @@ class MultiURLViewBooster:
         
         url_distribution = self.distribute_urls(urls, max_instances, self.config.max_tabs_per_instance)
         
-        self.logger.info(f"📋 配置信息:")
+        self.logger.info("配置信息:")
         self.logger.info(f"   总URL数: {num_urls}")
         self.logger.info(f"   使用账户数: {max_instances}")
         self.logger.info(f"   每实例最大标签页: {self.config.max_tabs_per_instance}")
@@ -515,7 +515,7 @@ class MultiURLViewBooster:
             return {"success": False, "error": "没有成功创建任何浏览器实例"}
         
         total_tabs = sum(len(inst['tabs']) for inst in self.instances)
-        self.logger.info(f"✅ 成功创建 {len(self.instances)} 个浏览器实例，共 {total_tabs} 个标签页")
+        self.logger.info(f"成功创建 {len(self.instances)} 个浏览器实例，共 {total_tabs} 个标签页")
         
         # 启动所有实例
         try:
@@ -545,7 +545,7 @@ class MultiURLViewBooster:
         
         if self.stats['start_time']:
             duration = (datetime.now() - self.stats['start_time']).total_seconds()
-            self.logger.info(f"\n📊 运行统计:")
+            self.logger.info("\n运行统计:")
             self.logger.info(f"   运行时长: {duration:.1f}秒")
             self.logger.info(f"   总访问次数: {self.stats['total_views']}")
             self.logger.info(f"   成功访问: {self.stats['successful_views']}")
@@ -558,7 +558,7 @@ class MultiURLViewBooster:
             # 显示截图统计
             screenshot_stats = self.screenshot_manager.get_stats()
             if screenshot_stats.get('enabled'):
-                self.logger.info(f"\n📸 截图统计:")
+                self.logger.info("\n截图统计:")
                 self.logger.info(f"   截图环境: {self.config.screenshot_env}")
                 self.logger.info(f"   生成截图: {screenshot_stats.get('total_screenshots', 0)}")
                 self.logger.info(f"   存储占用: {screenshot_stats.get('storage_mb', 0)}MB")

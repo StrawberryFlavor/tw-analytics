@@ -207,14 +207,14 @@ class PooledBrowserInstance:
             if self.current_account:
                 await self._set_account_auth(self.current_context, self.current_account)
             
-            self.logger.info(f"🎭 浏览器上下文创建成功")
+            self.logger.info("浏览器上下文创建成功")
             self.logger.debug(f"   UA: {config['user_agent'][:60]}...")
             self.logger.debug(f"   视口: {config['viewport']}")
             self.logger.debug(f"   语言: {config['language']}, 时区: {config['timezone']}")
             
             # 如果有账户，记录账户信息
             if self.current_account:
-                self.logger.info(f"🔐 已设置账户认证: {self.current_account.username}")
+                self.logger.info(f"已设置账户认证: {self.current_account.username}")
             
         except Exception as e:
             self.logger.error(f"创建上下文失败: {e}")
@@ -466,11 +466,11 @@ class PooledBrowserInstance:
             # 账户切换成功后强制刷新页面 (模拟 Ctrl+R)
             if self.current_page:
                 try:
-                    self.logger.info(f"🔄 账户切换后强制刷新页面: {self.current_page.url}")
+                    self.logger.info(f"账户切换后强制刷新页面: {self.current_page.url}")
                     await self.current_page.reload(wait_until='domcontentloaded', timeout=10000)
                     # 给页面一些时间稳定
                     await asyncio.sleep(1)
-                    self.logger.info("✅ 页面刷新完成，新账户内容已加载")
+                    self.logger.info("页面刷新完成，新账户内容已加载")
                 except Exception as refresh_error:
                     self.logger.warning(f"账户切换后页面刷新失败: {refresh_error}")
         else:
@@ -505,11 +505,11 @@ class PooledBrowserInstance:
             # 账户切换成功后强制刷新页面 (模拟 Ctrl+R)
             if self.current_page:
                 try:
-                    self.logger.info(f"🔄 账户切换后强制刷新页面: {self.current_page.url}")
+                    self.logger.info(f"账户切换后强制刷新页面: {self.current_page.url}")
                     await self.current_page.reload(wait_until='domcontentloaded', timeout=10000)
                     # 给页面一些时间稳定
                     await asyncio.sleep(1)
-                    self.logger.info("✅ 页面刷新完成，新账户内容已加载")
+                    self.logger.info("页面刷新完成，新账户内容已加载")
                 except Exception as refresh_error:
                     self.logger.warning(f"账户切换后页面刷新失败: {refresh_error}")
         else:
@@ -563,7 +563,7 @@ class PooledBrowserInstance:
     async def _force_restart(self):
         """强制重启实例"""
         try:
-            self.logger.info(f"🔄 强制重启实例: {self.instance_id}")
+            self.logger.info(f"强制重启实例: {self.instance_id}")
             
             # 重置计数器
             self.usage_count = 0
@@ -575,9 +575,9 @@ class PooledBrowserInstance:
             # 重新初始化
             await self._initialize_browser()
             
-            self.logger.info(f"✅ 实例 {self.instance_id} 重启完成")
+            self.logger.info(f"实例 {self.instance_id} 重启完成")
             
         except Exception as e:
-            self.logger.error(f"❌ 实例 {self.instance_id} 强制重启失败: {e}")
+            self.logger.error(f"实例 {self.instance_id} 强制重启失败: {e}")
             self.status = InstanceStatus.ERROR
             raise

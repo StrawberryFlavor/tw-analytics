@@ -61,7 +61,7 @@ class InstanceRotationManager:
         self.instance_usage_count[instance_id] = 0
         self.last_rotation_time[instance_id] = current_time
         
-        self.logger.info(f"🔄 注册实例轮换跟踪: {instance_id}")
+        self.logger.info(f"注册实例轮换跟踪: {instance_id}")
     
     def record_usage(self, instance_id: str):
         """记录实例使用"""
@@ -114,7 +114,7 @@ class InstanceRotationManager:
         self.instance_usage_count.pop(instance_id, None)
         self.last_rotation_time.pop(instance_id, None)
         
-        self.logger.info(f"🗑️ 清理实例轮换跟踪: {instance_id}")
+        self.logger.info(f"清理实例轮换跟踪: {instance_id}")
     
     def get_instance_stats(self, instance_id: str) -> Dict[str, Any]:
         """获取实例统计信息"""

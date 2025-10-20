@@ -52,6 +52,32 @@ def create_app(config_name=None):
         ]
     )
     
+    # 日志过滤：去除表情符号和多余装饰，保持输出简洁
+    class _StripEmojiFilter(logging.Filter):
+        def filter(self, record: logging.LogRecord) -> bool:
+            try:
+                msg = record.getMessage()
+                def _strip(s: str) -> str:
+                    out = []
+                    for ch in s:
+                        cp = ord(ch)
+                        # 常见 emoji 和装饰符范围
+                        if 0x1F300 <= cp <= 0x1FAFF:  # Misc Symbols and Pictographs, etc.
+                            continue
+                        if 0x2600 <= cp <= 0x27BF:    # Misc symbols, Dingbats
+                            continue
+                        out.append(ch)
+                    return ''.join(out)
+                clean = _strip(msg)
+                record.msg = clean
+                record.args = ()
+            except Exception:
+                pass
+            return True
+    
+    for h in logging.getLogger().handlers:
+        h.addFilter(_StripEmojiFilter())
+    
     # 确保实例文件夹存在
     try:
         os.makedirs(app.instance_path)

@@ -198,7 +198,7 @@ class BatchManager:
         if not records:
             return []
         
-        self.logger.info(f"📦 创建批次: {len(records)} 条记录, 策略: {strategy}")
+        self.logger.info(f"创建批次: {len(records)} 条记录, 策略: {strategy}")
         
         if strategy == "equal":
             batches = BatchStrategy.create_equal_batches(records, self.config.batch_size)
@@ -244,7 +244,7 @@ class BatchManager:
         self._total_batches = len(batches)
         self._total_records = len(records)
         
-        self.logger.info(f"✅ 批次创建完成: {len(batches)} 个批次")
+        self.logger.info(f"批次创建完成: {len(batches)} 个批次")
         
         # 打印批次分布统计
         batch_sizes = [batch.size for batch in batches]
@@ -252,7 +252,7 @@ class BatchManager:
         min_size = min(batch_sizes) if batch_sizes else 0
         max_size = max(batch_sizes) if batch_sizes else 0
         
-        self.logger.info(f"📊 批次统计: 平均大小 {avg_size:.1f}, 范围 {min_size}-{max_size}")
+        self.logger.info(f"批次统计: 平均大小 {avg_size:.1f}, 范围 {min_size}-{max_size}")
         
         return batches
     
@@ -274,7 +274,7 @@ class BatchManager:
         if not batches:
             return []
         
-        self.logger.info(f"🚀 开始处理 {len(batches)} 个批次...")
+        self.logger.info(f"开始处理 {len(batches)} 个批次...")
         
         self._is_running = True
         self._should_stop = False
@@ -295,7 +295,7 @@ class BatchManager:
                     batches, batch_processor, progress_callback)
                     
         except Exception as e:
-            self.logger.error(f"❌ 批次处理异常: {e}")
+            self.logger.error(f"批次处理异常: {e}")
             raise
         finally:
             self._is_running = False
@@ -305,8 +305,8 @@ class BatchManager:
         total_failure = sum(r.failure_count for r in results)
         total_time = sum(r.processing_time for r in results)
         
-        self.logger.info(f"✅ 批次处理完成!")
-        self.logger.info(f"📊 处理统计:")
+        self.logger.info("批次处理完成")
+        self.logger.info("处理统计:")
         self.logger.info(f"   批次: {self._processed_batches}/{self._total_batches}")
         self.logger.info(f"   记录: 成功 {total_success}, 失败 {total_failure}")
         self.logger.info(f"   时间: {total_time:.1f}s")
@@ -322,18 +322,18 @@ class BatchManager:
         
         for i, batch in enumerate(batches):
             if self._should_stop:
-                self.logger.info("📢 接收到停止信号，终止处理")
+                self.logger.info("接收到停止信号，终止处理")
                 break
             
             # 检查暂停状态
             while self._is_paused and not self._should_stop:
-                self.logger.info("⏸️  处理已暂停，等待恢复...")
+                self.logger.info("处理已暂停，等待恢复...")
                 await asyncio.sleep(1)
             
             if self._should_stop:
                 break
             
-            self.logger.info(f"📦 处理批次 {i+1}/{len(batches)} (ID: {batch.batch_id}, 大小: {batch.size})")
+            self.logger.info(f"处理批次 {i+1}/{len(batches)} (ID: {batch.batch_id}, 大小: {batch.size})")
             
             try:
                 # 批次间延迟控制
@@ -380,13 +380,13 @@ class BatchManager:
                 
                 # 记录处理结果
                 success_rate = batch_result.success_count / batch.size * 100 if batch.size > 0 else 0
-                self.logger.info(f"✅ 批次 {batch.batch_id} 完成: {batch_result.success_count}/{batch.size} 成功 ({success_rate:.1f}%)")
+                self.logger.info(f"批次 {batch.batch_id} 完成: {batch_result.success_count}/{batch.size} 成功 ({success_rate:.1f}%)")
                 
                 if batch_result.errors:
-                    self.logger.warning(f"⚠️  批次 {batch.batch_id} 有 {len(batch_result.errors)} 个错误")
+                    self.logger.warning(f"批次 {batch.batch_id} 有 {len(batch_result.errors)} 个错误")
                 
             except Exception as e:
-                self.logger.error(f"❌ 批次 {batch.batch_id} 处理失败: {e}")
+                    self.logger.error(f"批次 {batch.batch_id} 处理失败: {e}")
                 
                 # 创建错误结果
                 error_result = BatchResult(
@@ -408,7 +408,7 @@ class BatchManager:
                                          if r.success_count == 0)
                 
                 if consecutive_failures >= self.config.max_consecutive_failures:
-                    self.logger.error(f"❌ 连续 {consecutive_failures} 个批次失败，暂停处理")
+                self.logger.error(f"连续 {consecutive_failures} 个批次失败，暂停处理")
                     await asyncio.sleep(self.config.pause_on_error_seconds)
         
         return results
@@ -431,7 +431,7 @@ class BatchManager:
                     return None
                 
                 try:
-                    self.logger.info(f"📦 并发处理批次 {index+1}/{len(batches)} (ID: {batch.batch_id})")
+                    self.logger.info(f"并发处理批次 {index+1}/{len(batches)} (ID: {batch.batch_id})")
                     
                     start_time = asyncio.get_event_loop().time()
                     
@@ -464,7 +464,7 @@ class BatchManager:
                     return batch_result
                     
                 except Exception as e:
-                    self.logger.error(f"❌ 并发批次 {batch.batch_id} 失败: {e}")
+                    self.logger.error(f"并发批次 {batch.batch_id} 失败: {e}")
                     return BatchResult(
                         batch_info=batch,
                         success_count=0,
@@ -484,7 +484,7 @@ class BatchManager:
         # 处理结果
         for result in task_results:
             if isinstance(result, Exception):
-                self.logger.error(f"❌ 任务异常: {result}")
+                self.logger.error(f"任务异常: {result}")
                 continue
             
             if result is not None:
@@ -530,17 +530,17 @@ class BatchManager:
     def pause(self):
         """暂停处理"""
         self._is_paused = True
-        self.logger.info("⏸️  批处理已暂停")
+        self.logger.info("批处理已暂停")
     
     def resume(self):
         """恢复处理"""
         self._is_paused = False
-        self.logger.info("▶️  批处理已恢复")
+        self.logger.info("批处理已恢复")
     
     def stop(self):
         """停止处理"""
         self._should_stop = True
-        self.logger.info("⏹️  批处理停止信号已发送")
+        self.logger.info("批处理停止信号已发送")
     
     def reset_statistics(self):
         """重置统计信息"""
@@ -548,4 +548,4 @@ class BatchManager:
         self._failed_batches = 0
         self._processed_records = 0
         self._failed_records = 0
-        self.logger.info("🔄 统计信息已重置")
+        self.logger.info("统计信息已重置")

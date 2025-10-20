@@ -20,8 +20,7 @@ async def main():
     sync_service = None
     
     try:
-        print("🔄 开始数据同步任务...")
-        print("=" * 60)
+        print("开始数据同步...")
         
         # 检查命令行参数
         dry_run = '--dry-run' in sys.argv or '--test' in sys.argv
@@ -30,13 +29,13 @@ async def main():
         priority_new = '--priority-new' in sys.argv
         
         if dry_run:
-            print("🧪 演练模式 - 不会实际修改数据库")
+            print("演练模式：不修改数据库")
         if not enable_twitter:
-            print("⚠️  禁用Twitter API数据获取")
+            print("禁用 Twitter API 数据获取")
         if update_all:
-            print("🔄 全部更新模式 - 刷新所有现有记录")
+            print("模式：全部更新（刷新所有现有记录）")
         if priority_new:
-            print("⚡ 优先级模式 - 专门处理从未同步过的数据")
+            print("模式：优先级（处理从未同步过的数据）")
         
         print()
         
@@ -50,13 +49,13 @@ async def main():
         # 创建同步配置
         if update_all:
             config = SyncConfig.create_update_all_config()
-            print("📋 使用全部更新配置")
+            print("使用全部更新配置")
         elif priority_new:
             config = SyncConfig.create_priority_config()
-            print("📋 使用优先级同步配置")
+            print("使用优先级同步配置")
         else:
             config = SyncConfig.create_safe_config()
-            print("📋 使用标准同步配置")
+            print("使用标准同步配置")
         
         config.dry_run = dry_run
         config.enable_twitter_api = enable_twitter
@@ -66,7 +65,7 @@ async def main():
             config=config
         )
         
-        print(f"📋 同步配置:")
+        print("同步配置:")
         print(f"   批次大小: {config.sync_batch_size}")
         print(f"   最大并发: {config.max_concurrent_syncs}")
         print(f"   重试延迟: {config.sync_retry_delay}秒")
@@ -78,16 +77,16 @@ async def main():
         # 确认执行
         if not dry_run:
             if update_all:
-                print("⚠️  警告: 这将更新所有现有推文记录的Twitter数据！")
+                print("警告：这将更新所有现有推文记录的 Twitter 数据")
                 confirm = input("确认要执行全部更新吗？这可能需要较长时间 (y/N): ").strip().lower()
             elif priority_new:
-                print("⚡ 优先级同步: 这将创建所有从未同步过的推文记录！")
+                print("优先级同步：将创建所有从未同步过的推文记录")
                 confirm = input("确认要执行优先级同步吗？(y/N): ").strip().lower()
             else:
                 confirm = input("确认要执行数据同步吗？这将修改数据库 (y/N): ").strip().lower()
             
             if confirm != 'y':
-                print("❌ 操作已取消")
+                print("操作已取消")
                 return
             print()
         
@@ -95,9 +94,7 @@ async def main():
         result = await sync_service.sync_all_data()
         
         # 3. 显示结果
-        print("=" * 60)
-        print("📊 同步完成！结果汇总:")
-        print("-" * 30)
+        print("同步完成，结果：")
         print(f"   总处理记录: {result.total_processed}")
         print(f"   创建记录: {result.created_count}")
         print(f"   更新记录: {result.updated_count}")
@@ -107,52 +104,50 @@ async def main():
         print(f"   处理时间: {result.processing_time:.1f}秒")
         
         if result.errors:
-            print(f"\\n❌ 错误信息 ({len(result.errors)}):")
+            print(f"\\n错误信息 ({len(result.errors)}):")
             for error in result.errors[:5]:  # 只显示前5个错误
                 print(f"   - {error}")
             if len(result.errors) > 5:
                 print(f"   ... 还有 {len(result.errors) - 5} 个错误")
         
-        print("=" * 60)
-        
         if result.error_count == 0:
-            print("🎉 数据同步完全成功！")
+            print("状态：完全成功")
         elif result.success_rate >= 80:
-            print("✅ 数据同步基本成功，少量错误可能是正常的")
+            print("状态：基本成功（少量错误）")
         else:
-            print("⚠️  数据同步存在较多问题，请检查错误信息")
+            print("状态：存在较多问题，请检查错误信息")
         
         # 4. 验证结果（非演练模式）
         if not dry_run and result.created_count > 0:
-            print("\\n🔍 验证同步结果...")
+            print("\\n验证同步结果...")
             await verify_sync_results()
         
     except KeyboardInterrupt:
-        print("\\n❌ 用户中断操作")
+        print("\\n用户中断操作")
     except Exception as e:
-        print(f"❌ 同步过程出错: {e}")
+        print(f"同步过程出错: {e}")
         import traceback
         traceback.print_exc()
     finally:
         # 清理资源
         if sync_service:
             try:
-                print("🧹 正在清理服务资源...")
+                print("正在清理服务资源...")
                 # 清理Twitter服务资源
                 await sync_service.cleanup()
-                print("✅ Twitter服务资源清理完成")
+                print("Twitter 服务资源清理完成")
             except Exception as e:
-                print(f"⚠️ Twitter服务清理时出错: {e}")
+                print(f"Twitter 服务清理时出错: {e}")
             
             # 清理数据库连接
             if hasattr(sync_service, 'db_service'):
                 try:
                     await sync_service.db_service.close()
-                    print("✅ 数据库连接已关闭")
+                    print("数据库连接已关闭")
                 except Exception as e:
-                    print(f"⚠️ 数据库清理时出错: {e}")
+                    print(f"数据库清理时出错: {e}")
         
-        print("🏁 资源清理完成")
+        print("资源清理完成")
 
 async def verify_sync_results():
     """验证同步结果"""

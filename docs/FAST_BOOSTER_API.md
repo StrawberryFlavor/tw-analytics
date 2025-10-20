@@ -135,13 +135,13 @@ response = requests.post(url, json=data)
 if response.status_code == 200:
     result = response.json()
     if result["success"]:
-        print(f"✅ 任务启动成功！")
+        print("任务启动成功")
         print(f"任务ID: {result['data']['task_id']}")
         print(f"状态: {result['data']['status']}")
     else:
-        print(f"❌ 任务启动失败: {result['error']}")
+        print(f"任务启动失败: {result['error']}")
 else:
-    print(f"❌ 请求失败: {response.status_code}")
+    print(f"请求失败: {response.status_code}")
 ```
 
 ## 查询任务状态

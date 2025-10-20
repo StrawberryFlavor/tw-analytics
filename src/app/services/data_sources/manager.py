@@ -140,7 +140,7 @@ class DataSourceManager(DataSourceManagerInterface):
                 # 检查是否是风控异常（检查异常名称和属性）
                 if (hasattr(e, 'wait_time') and 
                     type(e).__name__ == 'RateLimitDetectedError'):
-                    self.logger.warning(f"🚨 {source.name} 检测到风控，暂时跳过: {e}")
+                    self.logger.warning(f"{source.name} 检测到风控，暂时跳过: {e}")
                     # 不记录为失败，因为这不是数据源的问题
                     last_error = e
                     continue

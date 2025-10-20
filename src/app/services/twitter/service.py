@@ -443,8 +443,8 @@ class TwitterService(TwitterServiceInterface):
                 except Exception as e:
                     self.logger.warning(f"清理异步运行器时出错: {e}")
             
-            self.logger.info("✅ Twitter服务资源清理完成")
+            self.logger.info("Twitter 服务资源清理完成")
             
         except Exception as e:
-            self.logger.error(f"❌ Twitter服务清理失败: {e}")
+            self.logger.error(f"Twitter 服务清理失败: {e}")
             raise

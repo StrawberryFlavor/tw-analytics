@@ -61,8 +61,8 @@ class CampaignDataSyncService:
         self.logger = logging.getLogger(__name__)
         self._twitter_service = None  # 缓存Twitter服务实例
         
-        self.logger.info(f"🔄 数据同步服务初始化完成")
-        self.logger.info(f"📋 配置: 批次大小={self.config.sync_batch_size}, 并发={self.config.max_concurrent_syncs}")
+        self.logger.info("数据同步服务初始化完成")
+        self.logger.info(f"配置: 批次大小={self.config.sync_batch_size}, 并发={self.config.max_concurrent_syncs}")
     
     async def _get_database_connection(self):
         """获取数据库连接 - 统一配置管理"""
@@ -84,17 +84,17 @@ class CampaignDataSyncService:
         result = SyncResult()
         
         try:
-            self.logger.info("🔄 开始数据同步...")
+            self.logger.info("开始数据同步...")
             
             # 1. 分析需要同步的数据
             sync_records = await self._analyze_sync_needs()
             
             if not sync_records:
-                self.logger.info("✅ 没有需要同步的数据")
+                self.logger.info("没有需要同步的数据")
                 return result
             
             result.total_processed = len(sync_records)
-            self.logger.info(f"📊 找到 {len(sync_records)} 条记录需要同步")
+            self.logger.info(f"找到 {len(sync_records)} 条记录需要同步")
             
             # 按操作类型统计
             create_count = sum(1 for r in sync_records if r.operation == SyncOperation.CREATE)
@@ -104,7 +104,7 @@ class CampaignDataSyncService:
             self.logger.info(f"   需要更新: {update_count} 条")
             
             if self.config.dry_run:
-                self.logger.info("🧪 演练模式，不会实际修改数据")
+                self.logger.info("演练模式，不会实际修改数据")
                 result.created_count = create_count
                 result.updated_count = update_count
                 return result
@@ -113,7 +113,7 @@ class CampaignDataSyncService:
             batches = self._create_batches(sync_records)
             
             for i, batch in enumerate(batches, 1):
-                self.logger.info(f"📦 处理批次 {i}/{len(batches)}: {len(batch)} 条记录")
+                self.logger.info(f"处理批次 {i}/{len(batches)}: {len(batch)} 条记录")
                 
                 batch_result = await self._process_batch(batch)
                 
@@ -130,22 +130,22 @@ class CampaignDataSyncService:
             
             result.processing_time = time.time() - start_time
             
-            self.logger.info("✅ 数据同步完成!")
-            self.logger.info(f"📊 结果: 创建={result.created_count}, 更新={result.updated_count}, "
+            self.logger.info("数据同步完成")
+            self.logger.info(f"结果: 创建={result.created_count}, 更新={result.updated_count}, "
                            f"跳过={result.skipped_count}, 错误={result.error_count}")
-            self.logger.info(f"⏱️  用时: {result.processing_time:.1f}秒")
+            self.logger.info(f"用时: {result.processing_time:.1f}秒")
             
             return result
             
         except Exception as e:
-            self.logger.error(f"❌ 数据同步失败: {e}")
+            self.logger.error(f"数据同步失败: {e}")
             result.processing_time = time.time() - start_time
             result.errors.append(f"同步过程异常: {str(e)}")
             raise
     
     async def _analyze_sync_needs(self) -> List[SyncRecord]:
         """分析同步需求"""
-        self.logger.info(f"🔍 分析同步需求 (模式: {self.config.sync_mode})...")
+        self.logger.info(f"分析同步需求 (模式: {self.config.sync_mode})...")
         
         if self.config.sync_mode == "update_all":
             return await self._analyze_update_all_needs()
@@ -248,7 +248,7 @@ class CampaignDataSyncService:
             
             # 如果数据一致则跳过
         
-        self.logger.info(f"🔍 分析完成: 需要处理 {len(sync_records)} 条记录")
+        self.logger.info(f"分析完成: 需要处理 {len(sync_records)} 条记录")
         return sync_records
     
     async def _analyze_update_all_needs(self) -> List[SyncRecord]:
@@ -304,7 +304,7 @@ class CampaignDataSyncService:
             )
             sync_records.append(sync_record)
         
-        self.logger.info(f"🔄 全部更新模式: 找到 {len(sync_records)} 条现有记录需要刷新")
+        self.logger.info(f"全部更新模式: 找到 {len(sync_records)} 条现有记录需要刷新")
         return sync_records
     
     async def _analyze_priority_new_needs(self) -> List[SyncRecord]:
@@ -387,7 +387,7 @@ class CampaignDataSyncService:
             )
             sync_records.append(sync_record)
         
-        self.logger.info(f"⚡ 优先级同步: 找到 {len(sync_records)} 条从未同步过的记录")
+        self.logger.info(f"优先级同步: 找到 {len(sync_records)} 条从未同步过的记录")
         return sync_records
     
     def _create_batches(self, sync_records: List[SyncRecord]) -> List[List[SyncRecord]]:
@@ -408,7 +408,7 @@ class CampaignDataSyncService:
                     create_result = await self._create_snapshot_record(sync_record.submission_data)
                     if create_result == "success":
                         result.created_count += 1
-                        self.logger.debug(f"✅ 创建记录: {sync_record.tweet_id}")
+                        self.logger.debug(f"创建记录: {sync_record.tweet_id}")
                     elif create_result == "skipped":
                         result.skipped_count += 1
                         self.logger.debug(f"⏭️  跳过记录: {sync_record.tweet_id} (推文不存在)")
@@ -420,7 +420,7 @@ class CampaignDataSyncService:
                     update_result = await self._update_snapshot_record(sync_record.submission_data)
                     if update_result == "success":
                         result.updated_count += 1
-                        self.logger.debug(f"✅ 更新记录: {sync_record.tweet_id}")
+                        self.logger.debug(f"更新记录: {sync_record.tweet_id}")
                     elif update_result == "skipped":
                         result.skipped_count += 1
                         self.logger.debug(f"⏭️  跳过记录: {sync_record.tweet_id} (推文不存在)")
@@ -432,7 +432,7 @@ class CampaignDataSyncService:
                 result.error_count += 1
                 error_msg = f"处理 {sync_record.tweet_id} 失败: {str(e)}"
                 result.errors.append(error_msg)
-                self.logger.error(f"❌ {error_msg}")
+                self.logger.error(f"{error_msg}")
         
         return result
     
@@ -464,15 +464,15 @@ class CampaignDataSyncService:
                     # 检查是否是风控导致的异常
                     if (hasattr(e, 'wait_time') and 
                         type(e).__name__ == 'RateLimitDetectedError'):
-                        self.logger.warning(f"🚨 创建记录时检测到风控，已在获取数据时处理等待: {submission.x_linked_to}")
+                        self.logger.warning(f"创建记录时检测到风控，已在获取数据时处理等待: {submission.x_linked_to}")
                         # 风控已经在_get_comprehensive_twitter_data中处理了，这里再试一次
                         try:
                             twitter_data = await self._get_comprehensive_twitter_data(submission.x_linked_to)
                         except Exception as retry_e:
-                            self.logger.error(f"❌ 风控处理后重试仍失败 {submission.x_linked_to}: {retry_e}")
+                            self.logger.error(f"风控处理后重试仍失败 {submission.x_linked_to}: {retry_e}")
                             return "failed"
                     else:
-                        self.logger.error(f"❌ 获取Twitter数据失败 {submission.x_linked_to}: {e}")
+                        self.logger.error(f"获取 Twitter 数据失败 {submission.x_linked_to}: {e}")
                         return "failed"
             
             # === 智能错误处理：区分技术错误和内容错误 ===
@@ -547,13 +547,13 @@ class CampaignDataSyncService:
             # 插入数据库
             success = await self.db_service.create_record(snapshot)
             if success:
-                self.logger.debug(f"✅ 成功创建完整记录: {submission.x_linked_to}, author: {twitter_data.get('author_username')}, views: {snapshot.views}")
+                self.logger.debug(f"成功创建完整记录: {submission.x_linked_to}, author: {twitter_data.get('author_username')}, views: {snapshot.views}")
                 return "success"
             else:
                 return "failed"
             
         except Exception as e:
-            self.logger.error(f"❌ 创建快照记录失败 {submission.x_linked_to}: {e}")
+            self.logger.error(f"创建快照记录失败 {submission.x_linked_to}: {e}")
             return "failed"
     
     async def _update_snapshot_record(self, submission: TaskSubmission) -> str:
@@ -579,7 +579,7 @@ class CampaignDataSyncService:
             pure_tweet_id = self._extract_tweet_id_from_url(submission.x_linked_to)
             existing = await self.db_service.get_by_tweet_id(pure_tweet_id)
             if not existing:
-                self.logger.warning(f"⚠️  找不到要更新的记录: {pure_tweet_id} (来源URL: {submission.x_linked_to})")
+                self.logger.warning(f"找不到要更新的记录: {pure_tweet_id} (来源URL: {submission.x_linked_to})")
                 return "failed"
             
             # 如果启用Twitter API，获取最新数据 - 使用目标推文ID(x_linked_to)
@@ -614,7 +614,7 @@ class CampaignDataSyncService:
                         existing.related = twitter_data.get('related') or existing.related
                         
                         existing.message = "数据已从Twitter API刷新"
-                        self.logger.debug(f"✅ 从Twitter更新数据: {submission.x_linked_to}, views: {existing.views}")
+                        self.logger.debug(f"从 Twitter 更新数据: {submission.x_linked_to}, views: {existing.views}")
                     else:
                         # 使用错误处理器分析数据获取结果
                         if isinstance(twitter_data, dict) and twitter_data.get('tweet_deleted'):
@@ -638,7 +638,7 @@ class CampaignDataSyncService:
                         return error_handler.get_return_status(analysis)
                         
                 except Exception as e:
-                    self.logger.warning(f"⚠️  Twitter API调用失败，使用submission数据: {submission.x_linked_to}: {e}")
+                    self.logger.warning(f"Twitter API 调用失败，使用 submission 数据: {submission.x_linked_to}: {e}")
                     # fallback 到 submission 数据
                     if submission.view_count is not None:
                         existing.views = submission.view_count
@@ -661,7 +661,7 @@ class CampaignDataSyncService:
                 return "failed"
             
         except Exception as e:
-            self.logger.error(f"❌ 更新快照记录失败 {submission.x_linked_to}: {e}")
+            self.logger.error(f"更新快照记录失败 {submission.x_linked_to}: {e}")
             return "failed"
     
     def _parse_twitter_timestamp(self, timestamp_str: str) -> Optional[datetime]:
@@ -681,7 +681,7 @@ class CampaignDataSyncService:
             else:
                 return datetime.fromisoformat(timestamp_str)
         except Exception as e:
-            self.logger.warning(f"⚠️  时间戳解析失败: {timestamp_str}, 错误: {e}")
+            self.logger.warning(f"时间戳解析失败: {timestamp_str}, 错误: {e}")
             return None
 
     def _extract_tweet_id_from_url(self, tweet_url: str) -> str:
@@ -697,10 +697,10 @@ class CampaignDataSyncService:
                 return match.group(1)
             else:
                 # 如果没有匹配到，返回原始URL（向后兼容）
-                self.logger.warning(f"⚠️  无法从URL提取tweet ID: {tweet_url}")
+                self.logger.warning(f"无法从 URL 提取 tweet ID: {tweet_url}")
                 return tweet_url
         except Exception as e:
-            self.logger.error(f"❌ 提取tweet ID失败: {tweet_url}, 错误: {e}")
+            self.logger.error(f"提取 tweet ID 失败: {tweet_url}, 错误: {e}")
             return tweet_url
     
     async def _get_comprehensive_twitter_data(self, tweet_url: str) -> Optional[Dict[str, Any]]:
@@ -716,7 +716,7 @@ class CampaignDataSyncService:
             comprehensive_data = await twitter_service.get_comprehensive_data(tweet_url)
             
             if not comprehensive_data:
-                self.logger.warning(f"⚠️  Twitter API返回失败: {tweet_url}")
+                self.logger.warning(f"Twitter API 返回失败: {tweet_url}")
                 return None
             
             # 兼容新的数据结构：直接从根级别获取primary_tweet
@@ -790,17 +790,17 @@ class CampaignDataSyncService:
             # 检查是否是风控异常（检查异常名称和属性）
             if (hasattr(e, 'wait_time') and 
                 type(e).__name__ == 'RateLimitDetectedError'):
-                self.logger.warning(f"🚨 检测到风控，等待 {e.wait_time} 秒后重试: {tweet_url}")
+                self.logger.warning(f"检测到风控，等待 {e.wait_time} 秒后重试: {tweet_url}")
                 # 等待指定时间
                 await asyncio.sleep(e.wait_time)
                 # 重试一次
                 try:
-                    self.logger.info(f"🔄 风控等待完成，重试获取: {tweet_url}")
+                    self.logger.info(f"风控等待完成，重试获取: {tweet_url}")
                     twitter_service = await self._get_twitter_service()
                     comprehensive_data = await twitter_service.get_comprehensive_data(tweet_url)
                     
                     if not comprehensive_data:
-                        self.logger.warning(f"⚠️  重试后仍无法获取数据: {tweet_url}")
+                        self.logger.warning(f"重试后仍无法获取数据: {tweet_url}")
                         return None
                         
                     # 重新解析数据（重复上面的逻辑）
@@ -813,18 +813,18 @@ class CampaignDataSyncService:
                         
                         # 根据详细原因分类处理
                         if detailed_reason in ['rate_limited', 'login_required', 'page_load_error', 'network_error']:
-                            self.logger.error(f"❌ 技术错误 - 重试后仍为{detailed_reason}: {tweet_url}")
+                            self.logger.error(f"技术错误 - 重试后仍为 {detailed_reason}: {tweet_url}")
                             return None  # 技术问题
                         elif detailed_reason in ['tweet_not_found', 'tweet_protected']:
-                            self.logger.warning(f"⚠️  重试确认推文状态 - {detailed_reason}: {tweet_url}")
+                            self.logger.warning(f"重试确认推文状态 - {detailed_reason}: {tweet_url}")
                         elif '超时' in error_msg or 'timeout' in error_msg.lower():
-                            self.logger.error(f"❌ 技术错误 - 重试后获取推文仍超时: {tweet_url} - {error_msg}")
+                            self.logger.error(f"技术错误 - 重试后获取推文仍超时: {tweet_url} - {error_msg}")
                             return None  # 超时问题
                         elif '实例' in error_msg or 'instance' in error_msg.lower():
-                            self.logger.error(f"❌ 技术错误 - 重试后浏览器实例仍有问题: {tweet_url} - {error_msg}")
+                            self.logger.error(f"技术错误 - 重试后浏览器实例仍有问题: {tweet_url} - {error_msg}")
                             return None  # 实例问题
                         else:
-                            self.logger.warning(f"⚠️  重试后未找到主推文数据: {tweet_url} (原因: {detailed_reason or error_msg})")
+                            self.logger.warning(f"重试后未找到主推文数据: {tweet_url} (原因: {detailed_reason or error_msg})")
                         return None
                     
                     # 返回解析的数据
@@ -851,10 +851,10 @@ class CampaignDataSyncService:
                         'related': comprehensive_data.get('related_tweets')
                     }
                 except Exception as retry_error:
-                    self.logger.error(f"❌ 风控等待后重试仍失败 {tweet_url}: {retry_error}")
+                    self.logger.error(f"风控等待后重试仍失败 {tweet_url}: {retry_error}")
                     return None
             else:
-                self.logger.error(f"❌ 获取推文完整数据失败 {tweet_url}: {e}")
+                self.logger.error(f"获取推文完整数据失败 {tweet_url}: {e}")
                 return None
     
     async def _mark_submission_invalid(self, target_tweet_id: str) -> bool:
@@ -876,10 +876,10 @@ class CampaignDataSyncService:
             await connection.commit()
             
             if cursor.rowcount > 0:
-                self.logger.info(f"✅ 标记 {cursor.rowcount} 条submission记录为无效(基于x_linked_to): {target_tweet_id}")
+                self.logger.info(f"标记 {cursor.rowcount} 条 submission 记录为无效(基于 x_linked_to): {target_tweet_id}")
                 success = True
             else:
-                self.logger.debug(f"📝 没有找到需要更新的submission记录(基于x_linked_to): {target_tweet_id}")
+                self.logger.debug(f"没有找到需要更新的 submission 记录(基于 x_linked_to): {target_tweet_id}")
                 success = True  # 不算错误
             
             await cursor.close()
@@ -888,7 +888,7 @@ class CampaignDataSyncService:
             return success
             
         except Exception as e:
-            self.logger.error(f"❌ 标记submission为无效失败(基于x_linked_to) {target_tweet_id}: {e}")
+            self.logger.error(f"标记 submission 为无效失败(基于 x_linked_to) {target_tweet_id}: {e}")
             return False
     
     async def _get_twitter_service(self):
@@ -915,9 +915,9 @@ class CampaignDataSyncService:
                                     await source.cleanup()
                                 else:
                                     source.cleanup()
-                self.logger.info("✅ Twitter服务资源清理完成")
+                self.logger.info("Twitter 服务资源清理完成")
             except Exception as e:
-                self.logger.error(f"❌ Twitter服务清理失败: {e}")
+                self.logger.error(f"Twitter 服务清理失败: {e}")
             finally:
                 self._twitter_service = None
     

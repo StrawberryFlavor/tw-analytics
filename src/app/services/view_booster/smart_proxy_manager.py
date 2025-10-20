@@ -46,7 +46,7 @@ class SmartProxyManager:
         self._detection_time = None
         self._cache_duration = 300  # 5分钟缓存
         
-        self.logger.info(f"🔧 智能代理管理器初始化:")
+        self.logger.info("智能代理管理器初始化:")
         self.logger.info(f"   网络模式: {self.network_mode.value}")
         self.logger.info(f"   本地代理: {self.local_proxy if self.local_proxy else '未配置'}")
         self.logger.info(f"   代理池: {'启用' if self.proxy_pool_enabled else '禁用'}")
@@ -69,7 +69,7 @@ class SmartProxyManager:
         
         # 最高优先级：单一代理参数
         if override_proxy:
-            self.logger.info(f"🔄 使用API指定的单一代理: {override_proxy}")
+            self.logger.info(f"使用 API 指定的单一代理: {override_proxy}")
             return self._parse_single_proxy(override_proxy)
         
         # 确定生效的网络模式（API参数优先）
@@ -77,26 +77,26 @@ class SmartProxyManager:
         if override_network_mode:
             try:
                 effective_network_mode = NetworkMode(override_network_mode)
-                self.logger.info(f"🔄 使用API覆盖的网络模式: {override_network_mode}")
+                self.logger.info(f"使用 API 覆盖的网络模式: {override_network_mode}")
             except ValueError:
-                self.logger.warning(f"⚠️ 无效的网络模式覆盖参数: {override_network_mode}，使用环境变量设置")
+                self.logger.warning(f"无效的网络模式覆盖参数: {override_network_mode}，使用环境变量设置")
         
         # 确定生效的代理池设置（API参数优先）
         effective_proxy_pool_enabled = self.proxy_pool_enabled
         if override_use_proxy_pool is not None:
             effective_proxy_pool_enabled = override_use_proxy_pool
-            self.logger.info(f"🔄 使用API覆盖的代理池设置: {override_use_proxy_pool}")
+            self.logger.info(f"使用 API 覆盖的代理池设置: {override_use_proxy_pool}")
         
         if effective_network_mode == NetworkMode.AUTO:
             return await self._auto_detect_proxy(effective_proxy_pool_enabled)
         elif effective_network_mode == NetworkMode.DIRECT:
-            self.logger.info("🌐 使用直连模式")
+            self.logger.info("使用直连模式")
             return None
         elif effective_network_mode == NetworkMode.LOCAL_PROXY:
-            self.logger.info("🔒 使用本地代理模式")
+            self.logger.info("使用本地代理模式")
             return self._get_local_proxy_config()
         elif effective_network_mode == NetworkMode.PROXY_POOL:
-            self.logger.info("🌍 使用代理池模式")
+            self.logger.info("使用代理池模式")
             return await self._get_pool_proxy_config() if effective_proxy_pool_enabled else None
         else:
             raise ValueError(f"未知的网络模式: {effective_network_mode}")
@@ -107,7 +107,7 @@ class SmartProxyManager:
         if effective_proxy_pool_enabled is None:
             effective_proxy_pool_enabled = self.proxy_pool_enabled
         
-        self.logger.info("🔍 自动检测网络环境...")
+        self.logger.info("自动检测网络环境...")
         
         # 检查缓存
         import time
@@ -121,17 +121,17 @@ class SmartProxyManager:
             self._detection_time = current_time
         
         if self._can_direct_connect:
-            self.logger.info("✅ 网络可直连x.com")
+            self.logger.info("网络可直连 x.com")
             if effective_proxy_pool_enabled:
-                self.logger.info("🌍 选择代理池模式 (业务需求)")
+                self.logger.info("选择代理池模式 (业务需求)")
                 return await self._get_pool_proxy_config()
             else:
-                self.logger.info("🌐 选择直连模式")
+                self.logger.info("选择直连模式")
                 return None
         else:
-            self.logger.info("❌ 网络无法直连x.com")
+            self.logger.info("网络无法直连 x.com")
             if self.local_proxy:
-                self.logger.info("🔒 选择本地代理模式 (科学上网)")
+                self.logger.info("选择本地代理模式 (科学上网)")
                 return self._get_local_proxy_config()
             else:
                 raise NetworkError(
@@ -154,14 +154,14 @@ class SmartProxyManager:
                 success = response.status_code in [200, 302, 400, 403, 429]  # 只要不是网络错误就算连通
                 
                 if success:
-                    self.logger.debug("✅ x.com直连测试成功")
+                    self.logger.debug("x.com 直连测试成功")
                 else:
-                    self.logger.debug(f"❌ x.com直连测试失败: HTTP {response.status_code}")
+                    self.logger.debug(f"x.com 直连测试失败: HTTP {response.status_code}")
                 
                 return success
                 
         except Exception as e:
-            self.logger.debug(f"❌ x.com直连测试异常: {e}")
+            self.logger.debug(f"x.com 直连测试异常: {e}")
             return False
     
     def _parse_single_proxy(self, proxy_url: str) -> Optional[Dict[str, Any]]:
@@ -233,7 +233,7 @@ class SmartProxyManager:
     async def test_proxy_connection(self, test_url: str = "https://x.com") -> bool:
         """测试当前代理配置是否可用"""
         
-        self.logger.info(f"🔍 测试代理连接: {test_url}")
+        self.logger.info(f"测试代理连接: {test_url}")
         
         try:
             proxy_config = await self.get_proxy_config()
@@ -256,14 +256,14 @@ class SmartProxyManager:
                 success = response.status_code in [200, 302, 400, 403, 429]
                 
                 if success:
-                    self.logger.info(f"✅ 代理连接测试成功: HTTP {response.status_code}")
+                    self.logger.info(f"代理连接测试成功: HTTP {response.status_code}")
                 else:
-                    self.logger.error(f"❌ 代理连接测试失败: HTTP {response.status_code}")
+                    self.logger.error(f"代理连接测试失败: HTTP {response.status_code}")
                 
                 return success
                 
         except Exception as e:
-            self.logger.error(f"❌ 代理连接测试异常: {e}")
+            self.logger.error(f"代理连接测试异常: {e}")
             return False
 
 

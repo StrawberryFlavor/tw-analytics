@@ -122,10 +122,10 @@ class PlaywrightPooledSource(BaseDataSource):
             from ...config import Config
             if Config.ACCOUNT_MANAGEMENT_ENABLED:
                 await self._browser_pool.initialize_with_account_manager()
-                self.logger.info("✅ 浏览器池已启用账户管理功能")
+                self.logger.info("浏览器池已启用账户管理功能")
             else:
                 await self._browser_pool.initialize()
-                self.logger.info("⚠️  浏览器池未启用账户管理功能")
+                self.logger.info("浏览器池未启用账户管理功能")
             
             self._pool_initialized = True
             self._init_pid = process_id
@@ -202,7 +202,7 @@ class PlaywrightPooledSource(BaseDataSource):
             
             # 增加超时时间到30秒
             instance, context, page = await self._browser_pool.acquire_instance(timeout=30.0)
-            self.logger.info(f"✅ 成功获取浏览器实例: {instance.instance_id if instance else 'None'}")
+            self.logger.info(f"成功获取浏览器实例: {instance.instance_id if instance else 'None'}")
             
             # 认证由浏览器实例内部处理，无需额外cookie加载
             self.logger.debug("使用账户管理系统统一认证")
@@ -249,7 +249,7 @@ class PlaywrightPooledSource(BaseDataSource):
                 # 超时可能是风控引起的，使用风控检测器判断
                 timeout_error = f"数据提取超时（{timeout}秒）"
                 if rate_limit_detector.is_rate_limited(timeout_error):
-                    self.logger.warning(f"🚨 检测到可能的风控引起的超时: {url}")
+                    self.logger.warning(f"检测到可能的风控引起的超时: {url}")
                     try:
                         # 使用风控检测器的安全等待方法
                         await rate_limit_detector.safe_wait_for_selector(
@@ -307,7 +307,7 @@ class PlaywrightPooledSource(BaseDataSource):
             # 检查是否是风控异常
             if (hasattr(e, 'wait_time') and 
                 type(e).__name__ == 'RateLimitDetectedError'):
-                self.logger.warning(f"🚨 池化提取检测到风控: {e}")
+                self.logger.warning(f"池化提取检测到风控: {e}")
                 # 风控异常需要传播到上层处理，但不算实例失败
                 if instance:
                     await self._browser_pool.release_instance(instance, success=True)

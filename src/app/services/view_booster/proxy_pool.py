@@ -85,17 +85,17 @@ class ProxyPool:
                         self.logger.warning(f"代理格式无效 (行{line_num}): {line[:50]}...")
             
             if self.proxies:
-                self.logger.info(f"✅ 成功加载 {len(self.proxies)} 个代理")
+                self.logger.info(f"成功加载 {len(self.proxies)} 个代理")
                 # 随机打乱代理顺序
                 random.shuffle(self.proxies)
                 return True
             else:
-                self.logger.warning("❌ 没有找到有效的代理")
+                self.logger.warning("没有找到有效的代理")
                 self.enabled = False
                 return False
                 
         except Exception as e:
-            self.logger.error(f"❌ 加载代理文件失败: {e}")
+            self.logger.error(f"加载代理文件失败: {e}")
             self.enabled = False
             return False
     
@@ -137,7 +137,7 @@ class ProxyPool:
             proxy = self.proxies[self.current_index]
             self.current_index = (self.current_index + 1) % len(self.proxies)
             
-            self.logger.debug(f"🔄 分配代理 {self.current_index}/{len(self.proxies)}: {proxy[:30]}...")
+            self.logger.debug(f"分配代理 {self.current_index}/{len(self.proxies)}: {proxy[:30]}...")
             return proxy
     
     def get_random_proxy(self) -> Optional[str]:
@@ -151,7 +151,7 @@ class ProxyPool:
             return None
         
         proxy = random.choice(self.proxies)
-        self.logger.debug(f"🎲 随机分配代理: {proxy[:30]}...")
+        self.logger.debug(f"随机分配代理: {proxy[:30]}...")
         return proxy
     
     def get_proxy_for_instance(self, instance_id: int) -> Optional[str]:
@@ -171,7 +171,7 @@ class ProxyPool:
         proxy_index = instance_id % len(self.proxies)
         proxy = self.proxies[proxy_index]
         
-        self.logger.debug(f"📌 实例 {instance_id} 分配代理: {proxy[:30]}...")
+        self.logger.debug(f"实例 {instance_id} 分配代理: {proxy[:30]}...")
         return proxy
     
     def is_enabled(self) -> bool:
@@ -200,7 +200,7 @@ class ProxyPool:
         Returns:
             bool: 是否重新加载成功
         """
-        self.logger.info("🔄 重新加载代理文件...")
+        self.logger.info("重新加载代理文件...")
         with self.lock:
             self.current_index = 0
             return self.load_proxies()
@@ -208,7 +208,7 @@ class ProxyPool:
     def disable(self):
         """禁用代理池"""
         self.enabled = False
-        self.logger.info("❌ 代理池已禁用")
+        self.logger.info("代理池已禁用")
     
     def enable(self) -> bool:
         """
@@ -224,6 +224,6 @@ class ProxyPool:
             self.enabled = True
         
         if success:
-            self.logger.info("✅ 代理池已启用")
+            self.logger.info("代理池已启用")
         
         return success

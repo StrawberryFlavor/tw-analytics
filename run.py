@@ -23,18 +23,17 @@ try:
     config_class = get_config(env)
     config_class.validate()
 except ValueError as e:
-    print(f"❌ 配置错误: {e}")
-    print("请设置 TWITTER_BEARER_TOKEN 环境变量或使用 .env.example 创建 .env 文件")
+    print(f"配置错误: {e}")
+    print("请设置 TWITTER_BEARER_TOKEN 或使用 .env.example 创建 .env 文件")
     exit(1)
 
 if __name__ == '__main__':
     host = app.config.get('HOST', '127.0.0.1')
     port = app.config.get('PORT', 5000)
     
-    print(f"🚀 启动TW Analytics API服务 [{env}]")
-    print(f"📡 服务地址: http://{host}:{port}")
-    print(f"📋 健康检查: http://{host}:{port}/api/v1/health")
-    print("=" * 50)
+    print(f"启动 TW Analytics API 服务 [{env}]")
+    print(f"服务地址: http://{host}:{port}")
+    print(f"健康检查: http://{host}:{port}/api/v1/health")
     
     app.run(
         host=host,

@@ -60,14 +60,14 @@ class InstanceSelector:
         使用轮询算法查找可用实例（负载均衡）
         """
         total_instances = len(instances)
-        self.logger.info(f"🔄 开始轮询查找可用实例（总数: {total_instances}, 从索引 {self._round_robin_index} 开始）")
+        self.logger.info(f"开始轮询查找可用实例（总数: {total_instances}, 从索引 {self._round_robin_index} 开始）")
         
         # 打印所有实例状态
         for i, inst in enumerate(instances):
-            status_icon = "✅" if inst.is_available() else "❌"
+            status_icon = "" if inst.is_available() else ""
             status_text = getattr(inst, 'status', None)
             status_display = status_text.value if hasattr(status_text, 'value') else str(status_text)
-            self.logger.debug(f"  实例[{i}] {status_icon} {inst.instance_id}: 状态={status_display}, 使用次数={inst.usage_count}")
+            self.logger.debug(f"  实例[{i}] {inst.instance_id}: 状态={status_display}, 使用次数={inst.usage_count}")
         
         # 从上次的位置开始轮询
         for attempt in range(total_instances):
@@ -79,10 +79,10 @@ class InstanceSelector:
             if instance.is_available():
                 # 更新下次轮询的起始位置
                 self._round_robin_index = (index + 1) % total_instances
-                self.logger.info(f"✅ 轮询选中实例[{index}]: {instance.instance_id} (使用次数: {instance.usage_count}, 下次从 {self._round_robin_index} 开始)")
+                self.logger.info(f"轮询选中实例[{index}]: {instance.instance_id} (使用次数: {instance.usage_count}, 下次从 {self._round_robin_index} 开始)")
                 return instance
         
-        self.logger.debug("❌ 轮询完成，没有找到可用实例")
+        self.logger.debug("轮询完成，没有找到可用实例")
         return None
     
     def _find_random(self, instances: List[PooledBrowserInstance]) -> Optional[PooledBrowserInstance]:
@@ -94,7 +94,7 @@ class InstanceSelector:
             return None
             
         selected = random.choice(available_instances)
-        self.logger.info(f"🎲 随机选中实例: {selected.instance_id}")
+        self.logger.info(f"随机选中实例: {selected.instance_id}")
         return selected
     
     def _find_least_used(self, instances: List[PooledBrowserInstance]) -> Optional[PooledBrowserInstance]:
@@ -105,7 +105,7 @@ class InstanceSelector:
             
         # 按使用次数排序，选择最少的
         selected = min(available_instances, key=lambda x: x.usage_count)
-        self.logger.info(f"📊 选中最少使用实例: {selected.instance_id} (使用次数: {selected.usage_count})")
+        self.logger.info(f"选中最少使用实例: {selected.instance_id} (使用次数: {selected.usage_count})")
         return selected
     
     def reset_state(self):

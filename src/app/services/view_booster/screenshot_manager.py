@@ -83,7 +83,7 @@ class ScreenshotManager:
                         dir_date = datetime.strptime(dir_path.name, "%Y%m%d")
                         if dir_date < cutoff_date:
                             shutil.rmtree(dir_path)
-                            self.logger.info(f"♻️ 清理过期目录: {dir_path}")
+                            self.logger.info(f"清理过期目录: {dir_path}")
                     except ValueError:
                         # 非日期格式的目录，跳过
                         continue
@@ -103,7 +103,7 @@ class ScreenshotManager:
             size_mb = total_size / (1024 * 1024)
             
             if size_mb > self.config.max_storage_mb:
-                self.logger.warning(f"⚠️ 存储空间超限: {size_mb:.1f}MB > {self.config.max_storage_mb}MB")
+                self.logger.warning(f"存储空间超限: {size_mb:.1f}MB > {self.config.max_storage_mb}MB")
                 # 删除最旧的文件
                 self._cleanup_oldest_files()
                 return False
@@ -212,15 +212,15 @@ class ScreenshotManager:
             
             # 记录日志
             if screenshot_type == ScreenshotType.ERROR:
-                self.logger.error(f"❌ 错误截图: {filepath} - {error_msg}")
+                self.logger.error(f"错误截图: {filepath} - {error_msg}")
             elif screenshot_type == ScreenshotType.MILESTONE:
-                self.logger.info(f"🎯 里程碑截图: {filepath} (第{view_count}次访问)")
+                self.logger.info(f"里程碑截图: {filepath} (第{view_count}次访问)")
             elif screenshot_type == ScreenshotType.FIRST_LOAD:
-                self.logger.info(f"🚀 首次访问截图: {filepath}")
+                self.logger.info(f"首次访问截图: {filepath}")
             elif screenshot_type == ScreenshotType.FINAL:
-                self.logger.info(f"🏁 任务完成截图: {filepath}")
+                self.logger.info(f"任务完成截图: {filepath}")
             elif screenshot_type == ScreenshotType.DEBUG:
-                self.logger.debug(f"🔍 调试截图: {filepath}")
+                self.logger.debug(f"调试截图: {filepath}")
             
             return str(filepath)
             
@@ -258,7 +258,7 @@ class ScreenshotManager:
     async def cleanup(self):
         """清理任务"""
         self._cleanup_old_directories()
-        self.logger.info(f"📊 截图统计: {self.get_stats()}")
+        self.logger.info(f"截图统计: {self.get_stats()}")
 
 
 # 环境配置预设

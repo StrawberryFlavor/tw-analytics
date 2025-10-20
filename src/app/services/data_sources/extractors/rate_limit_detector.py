@@ -74,9 +74,9 @@ class TwitterRateLimitDetector:
         if not self.is_rate_limited(error):
             return
         
-        self.logger.error(f"🚨 检测到Twitter风控: {error}")
+        self.logger.error(f"检测到 Twitter 风控: {error}")
         if context:
-            self.logger.warning(f"📍 上下文: {context}")
+            self.logger.warning(f"上下文: {context}")
         
         self.logger.warning(f"⏰ 启动风控等待机制，等待 {self.wait_time/60:.1f} 分钟以避开检测...")
         
@@ -92,7 +92,7 @@ class TwitterRateLimitDetector:
         if remaining_seconds > 0:
             await asyncio.sleep(remaining_seconds)
         
-        self.logger.info("✅ 风控等待完成，继续执行")
+        self.logger.info("风控等待完成，继续执行")
     
     async def _check_if_actual_rate_limit(self, page, error: Exception) -> bool:
         """
@@ -285,12 +285,12 @@ class TwitterRateLimitDetector:
                 page_lower = page_text.lower()
                 # 记录页面内容片段便于调试
                 content_preview = page_text[:500].replace('\n', ' ').strip()
-                self.logger.info(f"🔍 页面内容预览: {content_preview}")
+                self.logger.info(f"页面内容预览: {content_preview}")
                 
                 # 首先检查是否包含明确的非风控标识
                 for indicator in non_rate_limit_indicators:
                     if indicator.lower() in page_lower:
-                        self.logger.info(f"❌ 检测到非风控错误标识: '{indicator}' - 不是风控")
+                        self.logger.info(f"检测到非风控错误标识: '{indicator}' - 不是风控")
                         return False
                 
                 # 检查是否包含可能的风控标识
@@ -312,27 +312,27 @@ class TwitterRateLimitDetector:
                     
                     if not has_tweet_content:
                         # 没有推文内容 + 错误消息 = 很可能是风控
-                        self.logger.warning(f"⚠️  检测到可疑标识 '{', '.join(detected_potential)}' 且无推文内容 - 判定为风控")
+                        self.logger.warning(f"检测到可疑标识 '{', '.join(detected_potential)}' 且无推文内容 - 判定为风控")
                         return True
                     else:
                         # 有推文内容 + 错误消息 = 可能只是临时错误
                         self.logger.info(f"ℹ️  检测到错误标识但有推文内容 - 不是风控")
                         return False
             else:
-                self.logger.warning(f"⚠️  无法获取页面内容或内容过短: {len(page_text) if page_text else 0} 字符")
+                self.logger.warning(f"无法获取页面内容或内容过短: {len(page_text) if page_text else 0} 字符")
             
             # 检查URL是否正常（如果被重定向到登录页等）
             if 'login' in page_url.lower() or 'signin' in page_url.lower():
-                self.logger.info(f"❌ 页面被重定向到登录页: {page_url} - 不是风控")
+                self.logger.info(f"页面被重定向到登录页: {page_url} - 不是风控")
                 return False
             
             # 如果没有发现非风控标识，且是超时错误，则认为可能是风控
-            self.logger.warning(f"⚠️  超时错误但未发现非风控标识，可能是真实风控: {error}")
+            self.logger.warning(f"超时错误但未发现非风控标识，可能是真实风控: {error}")
             return True
             
         except Exception as check_error:
             # 检查过程出错，为安全起见不认为是风控
-            self.logger.warning(f"⚠️  页面上下文检查失败，保守处理不认为是风控: {check_error}")
+            self.logger.warning(f"页面上下文检查失败，保守处理不认为是风控: {check_error}")
             return False
     
     async def safe_wait_for_selector(self, page, selector: str, timeout: int = 5000, **kwargs) -> bool:

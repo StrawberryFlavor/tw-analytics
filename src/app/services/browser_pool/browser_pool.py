@@ -90,10 +90,10 @@ class BrowserPool:
             from .instance_rotation import InstanceRotationManager, InstanceRotationConfig
             rotation_config = InstanceRotationConfig.from_app_config()
             self._rotation_manager = InstanceRotationManager(rotation_config)
-            self.logger.info(f"🔄 启用实例轮换 - 生命周期: {rotation_config.max_instance_lifetime}s, 使用次数: {rotation_config.max_usage_count}, 概率: {rotation_config.rotation_probability}")
+            self.logger.info(f"启用实例轮换 - 生命周期: {rotation_config.max_instance_lifetime}s, 使用次数: {rotation_config.max_usage_count}, 概率: {rotation_config.rotation_probability}")
         else:
             self._rotation_manager = None
-            self.logger.info("🔄 实例轮换已禁用")
+            self.logger.info("实例轮换已禁用")
         
         
         # 恢复管理器
@@ -246,7 +246,7 @@ class BrowserPool:
                     return
                 
                 # 创建新实例替换
-                self.logger.info(f"🔄 开始轮换实例: {instance_id}")
+                self.logger.info(f"开始轮换实例: {instance_id}")
                 new_instance = None
                 try:
                     # 步骤1：创建新实例
@@ -262,10 +262,10 @@ class BrowserPool:
                         # 清理旧实例跟踪
                         self._rotation_manager.cleanup_instance_tracking(instance_id)
                     
-                    self.logger.info(f"✅ 实例轮换完成: {instance_id} -> {new_instance.instance_id}")
+                    self.logger.info(f"实例轮换完成: {instance_id} -> {new_instance.instance_id}")
                     
                 except Exception as e:
-                    self.logger.error(f"❌ 实例轮换失败: {instance_id}, 错误: {e}")
+                    self.logger.error(f"实例轮换失败: {instance_id}, 错误: {e}")
                     # 如果创建新实例失败，标记旧实例为ERROR状态，避免继续使用
                     if instance_to_rotate:
                         instance_to_rotate.status = InstanceStatus.ERROR
@@ -277,19 +277,19 @@ class BrowserPool:
                             # 尝试关闭新创建的失败实例
                             await new_instance.dispose()
                         except Exception as dispose_error:
-                            self.logger.error(f"❌ 清理失败的新实例时出错: {dispose_error}")
+                            self.logger.error(f"清理失败的新实例时出错: {dispose_error}")
                     return
                 
                 # 步骤4：关闭旧实例（无论是否有异常都要执行）
                 try:
                     await instance_to_rotate.dispose()
-                    self.logger.info(f"✅ 旧实例 {instance_id} 已成功关闭")
+                    self.logger.info(f"旧实例 {instance_id} 已成功关闭")
                 except Exception as dispose_error:
-                    self.logger.error(f"❌ 关闭旧实例 {instance_id} 失败: {dispose_error}")
+                    self.logger.error(f"关闭旧实例 {instance_id} 失败: {dispose_error}")
                     # 即使关闭失败，也不影响新实例的使用
                     
         except Exception as e:
-            self.logger.error(f"❌ 异步轮换过程失败: {e}")
+            self.logger.error(f"异步轮换过程失败: {e}")
     
     
     async def acquire_instance(self, timeout: float = 30.0) -> Tuple[PooledBrowserInstance, BrowserContext, Page]:
@@ -388,21 +388,21 @@ class BrowserPool:
                         
                         # 强制检查：如果使用次数超过硬限制，立即轮换
                         if available_instance.usage_count > 30:
-                            self.logger.warning(f"⚠️ 实例 {available_instance.instance_id} 使用次数过多 ({available_instance.usage_count})，强制轮换")
+                            self.logger.warning(f"实例 {available_instance.instance_id} 使用次数过多 ({available_instance.usage_count})，强制轮换")
                             should_rotate = True
                             reason = RotationReason.USAGE_LIMIT
                         
                         if should_rotate:
-                            self.logger.info(f"🔄 实例 {available_instance.instance_id} 需要轮换 (原因: {reason.value if reason else 'unknown'})")
+                            self.logger.info(f"实例 {available_instance.instance_id} 需要轮换 (原因: {reason.value if reason else 'unknown'})")
                             # 异步轮换，不阻塞当前请求
                             asyncio.create_task(self._rotate_instance_async(available_instance.instance_id))
                     
                     stats_summary = self._metrics_manager.get_summary_text()
-                    self.logger.info(f"✅ 成功从池中获取实例: {available_instance.instance_id} ({stats_summary})")
+                    self.logger.info(f"成功从池中获取实例: {available_instance.instance_id} ({stats_summary})")
                     
                     # 打印负载分布统计
                     instance_usage = {inst.instance_id: inst.usage_count for inst in self.instances}
-                    self.logger.info(f"📊 负载分布: {instance_usage}")
+                    self.logger.info(f"负载分布: {instance_usage}")
                     
                     return available_instance, context, page
                 except Exception as e:
@@ -455,12 +455,12 @@ class BrowserPool:
         
         # 在锁外处理卡住的实例
         for inst in stuck_instances:
-            self.logger.warning(f"🔧 检测到卡住的实例 {inst.instance_id}，尝试强制恢复")
+            self.logger.warning(f"检测到卡住的实例 {inst.instance_id}，尝试强制恢复")
             try:
                 await inst.release(cleanup=True)
-                self.logger.info(f"✅ 成功恢复实例: {inst.instance_id}")
+                self.logger.info(f"成功恢复实例: {inst.instance_id}")
             except Exception as e:
-                self.logger.error(f"❌ 恢复实例失败 {inst.instance_id}: {e}")
+                self.logger.error(f"恢复实例失败 {inst.instance_id}: {e}")
                 # 标记为错误状态
                 inst.status = InstanceStatus.ERROR
     
@@ -609,10 +609,10 @@ class BrowserPool:
             self.logger.debug("清理所有实例...")
             await self._cleanup_all()
             
-            self.logger.info("✅ 浏览器池已完全关闭")
+            self.logger.info("浏览器池已完全关闭")
             
         except Exception as e:
-            self.logger.error(f"❌ 浏览器池关闭时出错: {e}")
+            self.logger.error(f"浏览器池关闭时出错: {e}")
             # 即使出错也要尝试强制清理
             try:
                 await self._cleanup_all()
@@ -672,7 +672,7 @@ class BrowserPool:
                 # 将httpx格式的代理配置转换为Playwright格式
                 proxy_url = proxy_config.get('http://') or proxy_config.get('https://')
                 if proxy_url:
-                    self.logger.info(f"🌍 智能代理管理器选择代理: {proxy_url[:50]}...")
+                    self.logger.info(f"智能代理管理器选择代理: {proxy_url[:50]}...")
                     return {"server": proxy_url}, True
             
             self.logger.debug("智能代理管理器选择直连模式")

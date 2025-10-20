@@ -76,8 +76,8 @@ class TweetDataUpdater:
         
         self.progress_tracker: Optional[ProgressTracker] = None
         
-        self.logger.info(f"🚀 数据更新器初始化完成")
-        self.logger.info(f"📋 配置: {self.config}")
+        self.logger.info("数据更新器初始化完成")
+        self.logger.info(f"配置: {self.config}")
     
     async def update_all_records(self, 
                                filter_recent: bool = None,
@@ -105,7 +105,7 @@ class TweetDataUpdater:
         )
         
         try:
-            self.logger.info("🔍 开始全量数据更新...")
+            self.logger.info("开始全量数据更新...")
             
             # 第1步: 获取需要更新的记录
             self.progress_tracker.update_phase("查询需要更新的记录")
@@ -116,7 +116,7 @@ class TweetDataUpdater:
             records_to_update = await self._get_records_to_update(filter_recent)
             
             if not records_to_update:
-                self.logger.info("✅ 没有需要更新的记录")
+                self.logger.info("没有需要更新的记录")
                 return UpdateResult(
                     total_records=0,
                     processed_records=0,
@@ -129,7 +129,7 @@ class TweetDataUpdater:
                     session_id=session_id
                 )
             
-            self.logger.info(f"📊 找到 {len(records_to_update)} 条需要更新的记录")
+            self.logger.info(f"找到 {len(records_to_update)} 条需要更新的记录")
             
             # 第2步: 创建批次
             self.progress_tracker.update_phase("创建处理批次")
@@ -166,14 +166,14 @@ class TweetDataUpdater:
             final_status = UpdateStatus.COMPLETED if result.success_rate > 50 else UpdateStatus.FAILED
             self.progress_tracker.complete_session(final_status)
             
-            self.logger.info("✅ 全量数据更新完成!")
-            self.logger.info(f"📊 最终结果: {result.successful_updates}/{result.total_records} 成功 "
+            self.logger.info("全量数据更新完成")
+            self.logger.info(f"最终结果: {result.successful_updates}/{result.total_records} 成功 "
                            f"({result.success_rate:.1f}%)")
             
             return result
             
         except Exception as e:
-            self.logger.error(f"❌ 数据更新过程异常: {e}")
+            self.logger.error(f"数据更新过程异常: {e}")
             if self.progress_tracker:
                 self.progress_tracker.complete_session(UpdateStatus.FAILED)
             raise
@@ -202,7 +202,7 @@ class TweetDataUpdater:
         )
         
         try:
-            self.logger.info(f"🔍 开始更新指定记录: {len(record_ids)} 条")
+            self.logger.info(f"开始更新指定记录: {len(record_ids)} 条")
             
             # 获取记录
             self.progress_tracker.update_phase("查询指定记录")
@@ -253,7 +253,7 @@ class TweetDataUpdater:
             return result
             
         except Exception as e:
-            self.logger.error(f"❌ 指定记录更新异常: {e}")
+            self.logger.error(f"指定记录更新异常: {e}")
             if self.progress_tracker:
                 self.progress_tracker.complete_session(UpdateStatus.FAILED)
             raise
@@ -282,9 +282,9 @@ class TweetDataUpdater:
         # 执行查询
         records = await self.db_service.execute_custom_query(query_builder)
         
-        self.logger.info(f"🔍 查询条件: 缺失关键字段的记录")
+        self.logger.info("查询条件: 缺失关键字段的记录")
         if filter_recent:
-            self.logger.info(f"📅 排除最近 {self.config.recent_update_threshold_hours} 小时内的记录")
+            self.logger.info(f"排除最近 {self.config.recent_update_threshold_hours} 小时内的记录")
         
         return records
     
@@ -299,7 +299,7 @@ class TweetDataUpdater:
         skipped_records = []
         errors = []
         
-        self.logger.info(f"📦 开始处理批次 {batch_info.batch_id}: {batch_info.size} 条记录")
+        self.logger.info(f"开始处理批次 {batch_info.batch_id}: {batch_info.size} 条记录")
         
         for record in batch_info.records:
             try:
@@ -330,7 +330,7 @@ class TweetDataUpdater:
                     )
                     self.rate_limiter.record_request(True, update_time)
                     
-                    self.logger.debug(f"✅ 记录 {record.id} 更新成功: {missing_fields}")
+                    self.logger.debug(f"记录 {record.id} 更新成功: {missing_fields}")
                     
                 else:
                     failed_records.append(record)
@@ -347,7 +347,7 @@ class TweetDataUpdater:
                     )
                     self.rate_limiter.record_request(False, update_time, error)
                     
-                    self.logger.warning(f"❌ 记录 {record.id} 更新失败: {error}")
+                    self.logger.warning(f"记录 {record.id} 更新失败: {error}")
                 
             except Exception as e:
                 failed_records.append(record)
@@ -365,7 +365,7 @@ class TweetDataUpdater:
                 )
                 self.rate_limiter.record_request(False, 0.0, "exception")
                 
-                self.logger.error(f"❌ 记录 {record.id} 处理异常: {e}")
+                self.logger.error(f"记录 {record.id} 处理异常: {e}")
         
         # 创建批次结果
         batch_result = BatchResult(
@@ -379,7 +379,7 @@ class TweetDataUpdater:
         )
         
         success_rate = (len(successful_records) / batch_info.size * 100) if batch_info.size > 0 else 0
-        self.logger.info(f"✅ 批次 {batch_info.batch_id} 处理完成: "
+        self.logger.info(f"批次 {batch_info.batch_id} 处理完成: "
                         f"{len(successful_records)}/{batch_info.size} 成功 ({success_rate:.1f}%)")
         
         yield batch_result
@@ -419,7 +419,7 @@ class TweetDataUpdater:
             updated_fields = []
             
             # 添加调试日志
-            self.logger.info(f"🔍 调试信息 - 记录 {record.id}:")
+            self.logger.info(f"调试信息 - 记录 {record.id}:")
             self.logger.info(f"   缺失字段: {missing_fields}")
             self.logger.info(f"   primary_tweet keys: {list(primary_tweet.keys())}")
             
@@ -444,9 +444,9 @@ class TweetDataUpdater:
                 if author_name:
                     record.author_name = str(author_name).strip()
                     updated_fields.append('author_name')
-                    self.logger.info(f"   ✅ 将更新 author_name: {record.author_name}")
+                    self.logger.info(f"   将更新 author_name: {record.author_name}")
                 else:
-                    self.logger.warning(f"   ❌ 未能提取到有效的 author_name")
+                    self.logger.warning(f"   未能提取到有效的 author_name")
             
             if 'tweet_time_utc' in missing_fields:
                 timestamp = primary_tweet.get('timestamp') or primary_tweet.get('time')
@@ -508,14 +508,14 @@ class TweetDataUpdater:
                         if views_value > 0:  # 只有大于0的views才更新
                             record.views = views_value
                             updated_fields.append('views')
-                            self.logger.info(f"   ✅ 将更新 views: {record.views}")
+                            self.logger.info(f"   将更新 views: {record.views}")
                         else:
-                            self.logger.warning(f"   ⚠️  获取到的views值为0或负数: {views_value}")
+                            self.logger.warning(f"   获取到的 views 值为 0 或负数: {views_value}")
                     
                     except (ValueError, TypeError) as e:
-                        self.logger.warning(f"   ❌ views值格式转换失败: {views_value}, 错误: {e}")
+                        self.logger.warning(f"   views 值格式转换失败: {views_value}, 错误: {e}")
                 else:
-                    self.logger.warning(f"   ❌ 未能提取到有效的 views 值")
+                    self.logger.warning(f"   未能提取到有效的 views 值")
             
             # 保存更新到数据库
             if updated_fields:
@@ -535,7 +535,7 @@ class TweetDataUpdater:
         self.progress_tracker.complete_batch(batch_result)
         
         progress = (batch_num / total_batches) * 100
-        self.logger.info(f"📊 进度: {batch_num}/{total_batches} 批次 ({progress:.1f}%)")
+        self.logger.info(f"进度: {batch_num}/{total_batches} 批次 ({progress:.1f}%)")
     
     def _create_update_result(self, 
                             records_to_update: List[CampaignTweetSnapshot],

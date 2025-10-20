@@ -16,7 +16,7 @@ def load_source_accounts(source_path):
             data = json.load(f)
         return data.get('accounts', [])
     except Exception as e:
-        print(f"❌ 加载源文件失败: {e}")
+        print(f"加载源文件失败: {e}")
         return []
 
 def load_target_accounts(target_path):
@@ -33,7 +33,7 @@ def load_target_accounts(target_path):
             "total_accounts": 0
         }
     except Exception as e:
-        print(f"❌ 加载目标文件失败: {e}")
+        print(f"加载目标文件失败: {e}")
         return [], {}
 
 def convert_account(source_account):
@@ -67,7 +67,7 @@ def convert_account(source_account):
 
 def main():
     """主函数"""
-    print("🔄 账户格式转换脚本")
+    print("账户格式转换脚本")
     print("=" * 50)
     
     # 文件路径
@@ -75,31 +75,31 @@ def main():
     source_path = script_dir / "accounts.json"
     target_path = script_dir.parent / "src" / "config" / "accounts.json"
     
-    print(f"📂 源文件: {source_path}")
-    print(f"📂 目标文件: {target_path}")
+    print(f"源文件: {source_path}")
+    print(f"目标文件: {target_path}")
     
     # 自动执行模式
-    print("\n🚀 自动执行账户转换...")
+    print("\n自动执行账户转换...")
     
     # 加载源账户
-    print("\n📖 加载源账户...")
+    print("\n加载源账户...")
     source_accounts = load_source_accounts(source_path)
     if not source_accounts:
-        print("❌ 没有找到源账户")
+        print("没有找到源账户")
         return
     
-    print(f"✅ 找到 {len(source_accounts)} 个源账户")
+    print(f"找到 {len(source_accounts)} 个源账户")
     
     # 加载目标账户
-    print("📖 加载目标账户...")
+    print("加载目标账户...")
     target_accounts, metadata = load_target_accounts(target_path)
-    print(f"✅ 找到 {len(target_accounts)} 个现有账户")
+    print(f"找到 {len(target_accounts)} 个现有账户")
     
     # 获取现有用户名集合
     existing_usernames = {acc.get("username") for acc in target_accounts}
     
     # 转换并合并账户
-    print("\n🔄 转换账户格式...")
+    print("\n转换账户格式...")
     converted_accounts = []
     skipped_count = 0
     
@@ -107,7 +107,7 @@ def main():
         username = source_account.get("username")
         
         if username in existing_usernames:
-            print(f"⏭️  跳过重复账户: {username}")
+            print(f"跳过重复账户: {username}")
             skipped_count += 1
             continue
         
@@ -115,11 +115,11 @@ def main():
         converted_accounts.append(converted)
         existing_usernames.add(username)  # 防止源文件内部重复
     
-    print(f"✅ 转换完成: {len(converted_accounts)} 个新账户")
-    print(f"⏭️  跳过重复: {skipped_count} 个账户")
+    print(f"转换完成: {len(converted_accounts)} 个新账户")
+    print(f"跳过重复: {skipped_count} 个账户")
     
     if not converted_accounts:
-        print("❌ 没有新账户需要添加")
+        print("没有新账户需要添加")
         return
     
     # 合并账户列表
@@ -142,24 +142,24 @@ def main():
     if target_path.exists():
         backup_path = target_path.with_suffix(f'.bak.{datetime.now().strftime("%Y%m%d_%H%M%S")}')
         target_path.rename(backup_path)
-        print(f"💾 原文件已备份: {backup_path}")
+        print(f"已备份原文件: {backup_path}")
     
     # 保存新文件
-    print(f"\n💾 保存到: {target_path}")
+    print(f"\n保存到: {target_path}")
     target_path.parent.mkdir(parents=True, exist_ok=True)
     
     with open(target_path, 'w', encoding='utf-8') as f:
         json.dump(final_data, f, indent=2, ensure_ascii=False)
     
-    print("✅ 转换完成！")
-    print("\n📊 最终统计:")
+    print("转换完成")
+    print("\n最终统计:")
     print(f"   总账户数: {len(all_accounts)}")
     print(f"   新增账户: {len(converted_accounts)}")
     print(f"   现有账户: {len(target_accounts)}")
     print(f"   跳过重复: {skipped_count}")
     
     # 验证结果
-    print("\n🔍 验证转换结果...")
+    print("\n验证转换结果...")
     try:
         with open(target_path, 'r', encoding='utf-8') as f:
             verification_data = json.load(f)
@@ -168,12 +168,12 @@ def main():
         metadata_count = verification_data.get('metadata', {}).get('total_accounts', 0)
         
         if accounts_count == metadata_count == len(all_accounts):
-            print("✅ 验证通过，文件格式正确")
+            print("验证通过，文件格式正确")
         else:
-            print(f"⚠️  验证警告: 数量不匹配 (accounts: {accounts_count}, metadata: {metadata_count}, expected: {len(all_accounts)})")
+            print(f"验证警告: 数量不匹配 (accounts: {accounts_count}, metadata: {metadata_count}, expected: {len(all_accounts)})")
             
     except Exception as e:
-        print(f"❌ 验证失败: {e}")
+        print(f"验证失败: {e}")
 
 if __name__ == "__main__":
     main()

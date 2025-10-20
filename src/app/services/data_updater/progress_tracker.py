@@ -174,7 +174,7 @@ class ProgressTracker:
         self._auto_save_task: Optional[asyncio.Task] = None
         self._should_stop_auto_save = False
         
-        self.logger.info(f"📊 进度追踪器初始化完成: {self.session_id}")
+        self.logger.info(f"进度追踪器初始化完成: {self.session_id}")
     
     def initialize_session(self, total_records: int, total_batches: int = 0):
         """初始化会话"""
@@ -185,7 +185,7 @@ class ProgressTracker:
         self.overall_progress.status = UpdateStatus.IN_PROGRESS
         self.overall_progress.current_phase = "准备数据"
         
-        self.logger.info(f"🚀 会话初始化: {total_records} 条记录, {total_batches} 个批次")
+        self.logger.info(f"会话初始化: {total_records} 条记录, {total_batches} 个批次")
         
         # 启动自动保存
         self.start_auto_save()
@@ -194,7 +194,7 @@ class ProgressTracker:
         """更新当前阶段"""
         self.overall_progress.current_phase = phase_name
         self.overall_progress.last_update_time = datetime.now()
-        self.logger.info(f"📋 阶段更新: {phase_name}")
+        self.logger.info(f"阶段更新: {phase_name}")
         self._notify_progress_callbacks()
     
     def start_batch(self, batch_info: BatchInfo):
@@ -221,7 +221,7 @@ class ProgressTracker:
         self.overall_progress.current_phase = f"处理批次 {batch_info.batch_id}"
         self.overall_progress.last_update_time = datetime.now()
         
-        self.logger.info(f"📦 开始批次 {batch_info.batch_id}: {batch_info.size} 条记录")
+        self.logger.info(f"开始批次 {batch_info.batch_id}: {batch_info.size} 条记录")
         self._notify_batch_callbacks(batch_progress)
     
     def complete_batch(self, batch_result: BatchResult):
@@ -269,7 +269,7 @@ class ProgressTracker:
         # 估算完成时间
         self._update_estimated_completion_time()
         
-        self.logger.info(f"✅ 批次 {batch_id} 完成: {batch_result.success_count}/{batch_result.batch_info.size} 成功")
+        self.logger.info(f"批次 {batch_id} 完成: {batch_result.success_count}/{batch_result.batch_info.size} 成功")
         
         self._notify_batch_callbacks(batch_progress)
         self._notify_progress_callbacks()
@@ -323,8 +323,8 @@ class ProgressTracker:
         # 最后保存一次
         self.save_progress()
         
-        self.logger.info(f"🏁 会话完成: {status.value}")
-        self.logger.info(f"📊 最终统计: {self.overall_progress.successful_records}/{self.overall_progress.total_records} 成功")
+        self.logger.info(f"会话完成: {status.value}")
+        self.logger.info(f"最终统计: {self.overall_progress.successful_records}/{self.overall_progress.total_records} 成功")
         
         self._notify_progress_callbacks()
     
@@ -385,11 +385,11 @@ class ProgressTracker:
             # 原子替换
             os.replace(temp_file, self.progress_file_path)
             
-            self.logger.debug(f"💾 进度已保存: {self.progress_file_path}")
+            self.logger.debug(f"进度已保存: {self.progress_file_path}")
             return True
             
         except Exception as e:
-            self.logger.error(f"❌ 保存进度失败: {e}")
+            self.logger.error(f"保存进度失败: {e}")
             return False
     
     def load_progress(self) -> bool:
@@ -416,11 +416,11 @@ class ProgressTracker:
             self.record_progress = {int(k): self._deserialize_record_progress(v) 
                                   for k, v in record_data.items()}
             
-            self.logger.info(f"📂 进度已恢复: {self.session_id}")
+            self.logger.info(f"进度已恢复: {self.session_id}")
             return True
             
         except Exception as e:
-            self.logger.error(f"❌ 加载进度失败: {e}")
+            self.logger.error(f"加载进度失败: {e}")
             return False
     
     def _serialize_overall_progress(self) -> dict:
@@ -496,7 +496,7 @@ class ProgressTracker:
         
         self._should_stop_auto_save = False
         self._auto_save_task = asyncio.create_task(self._auto_save_loop())
-        self.logger.debug(f"🔄 自动保存已启动，间隔: {self.auto_save_interval}s")
+        self.logger.debug(f"自动保存已启动，间隔: {self.auto_save_interval}s")
     
     def stop_auto_save(self):
         """停止自动保存"""

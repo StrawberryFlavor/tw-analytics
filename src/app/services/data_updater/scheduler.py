@@ -109,7 +109,7 @@ class UpdateScheduler:
         self._after_update_callbacks: List[Callable[[UpdateResult], None]] = []
         self._error_callbacks: List[Callable[[Exception], None]] = []
         
-        self.logger.info(f"📅 调度器初始化完成: {schedule_config.schedule_type.value}")
+        self.logger.info(f"调度器初始化完成: {schedule_config.schedule_type.value}")
     
     def start(self):
         """启动调度器"""
@@ -125,7 +125,7 @@ class UpdateScheduler:
         self._schedule_task = asyncio.create_task(self._schedule_loop())
         self.status.is_running = True
         
-        self.logger.info(f"📅 调度器已启动: {self.schedule_config.schedule_type.value}")
+        self.logger.info(f"调度器已启动: {self.schedule_config.schedule_type.value}")
         
         # 计算下次运行时间
         self._update_next_run_time()
@@ -141,21 +141,21 @@ class UpdateScheduler:
         self.status.is_running = False
         self.status.is_paused = False
         
-        self.logger.info("📅 调度器已停止")
+        self.logger.info("调度器已停止")
     
     def pause(self):
         """暂停调度器"""
         self.status.is_paused = True
-        self.logger.info("⏸️  调度器已暂停")
+        self.logger.info("调度器已暂停")
     
     def resume(self):
         """恢复调度器"""
         self.status.is_paused = False
-        self.logger.info("▶️  调度器已恢复")
+        self.logger.info("调度器已恢复")
     
     async def trigger_manual_update(self, **kwargs) -> UpdateResult:
         """手动触发更新"""
-        self.logger.info("🔄 手动触发数据更新...")
+        self.logger.info("手动触发数据更新...")
         
         try:
             # 执行更新前回调
@@ -170,7 +170,7 @@ class UpdateScheduler:
             # 执行更新后回调
             self._execute_after_update_callbacks(result)
             
-            self.logger.info(f"✅ 手动更新完成: {result.successful_updates}/{result.total_records} 成功")
+            self.logger.info(f"手动更新完成: {result.successful_updates}/{result.total_records} 成功")
             
             return result
             
@@ -181,7 +181,7 @@ class UpdateScheduler:
             # 执行错误回调
             self._execute_error_callbacks(e)
             
-            self.logger.error(f"❌ 手动更新失败: {e}")
+            self.logger.error(f"手动更新失败: {e}")
             raise
     
     async def _schedule_loop(self):
@@ -249,7 +249,7 @@ class UpdateScheduler:
         
         while retry_count <= self.schedule_config.max_retries:
             try:
-                self.logger.info(f"🔄 执行调度更新 (尝试 {retry_count + 1}/{self.schedule_config.max_retries + 1})")
+                self.logger.info(f"执行调度更新 (尝试 {retry_count + 1}/{self.schedule_config.max_retries + 1})")
                 
                 # 执行更新前回调
                 self._execute_before_update_callbacks()
@@ -263,7 +263,7 @@ class UpdateScheduler:
                 # 执行更新后回调
                 self._execute_after_update_callbacks(result)
                 
-                self.logger.info(f"✅ 调度更新完成: {result.successful_updates}/{result.total_records} 成功")
+                self.logger.info(f"调度更新完成: {result.successful_updates}/{result.total_records} 成功")
                 
                 # 重置连续失败计数
                 self.status.consecutive_failures = 0
@@ -278,11 +278,11 @@ class UpdateScheduler:
                 self.status.failure_count += 1
                 self.status.consecutive_failures += 1
                 
-                self.logger.error(f"❌ 调度更新失败 (尝试 {retry_count}): {e}")
+                self.logger.error(f"调度更新失败 (尝试 {retry_count}): {e}")
                 
                 if retry_count <= self.schedule_config.max_retries:
                     delay_seconds = self.schedule_config.retry_delay_minutes * 60
-                    self.logger.info(f"⏳ {delay_seconds/60:.0f} 分钟后重试...")
+                    self.logger.info(f"{delay_seconds/60:.0f} 分钟后重试...")
                     await asyncio.sleep(delay_seconds)
                 else:
                     # 执行错误回调

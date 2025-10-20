@@ -59,9 +59,9 @@ class ViewBoosterConfig:
                         )
                         self.accounts.append(account)
                 
-                print(f"✅ 加载了 {len(self.accounts)} 个活跃账户")
+                print(f"已加载 {len(self.accounts)} 个活跃账户")
         else:
-            print(f"❌ 账户配置文件不存在: {accounts_path}")
+            print(f"账户配置文件不存在: {accounts_path}")
 
 
 class MultiURLViewBooster:
@@ -105,7 +105,7 @@ class MultiURLViewBooster:
     async def create_browser_instance(self, account, instance_id: int, urls: List[str]):
         """创建浏览器实例（支持多标签页）"""
         try:
-            self.logger.info(f"🔧 创建实例 {instance_id} ({account.username}) - 处理 {len(urls)} 个URL")
+            self.logger.info(f"创建实例 {instance_id} ({account.username}) - 处理 {len(urls)} 个URL")
             
             playwright = await async_playwright().start()
             
@@ -154,7 +154,7 @@ class MultiURLViewBooster:
                     'first_load': True
                 }
                 tabs.append(tab_info)
-                self.logger.info(f"📑 创建标签页 {tab_info['tab_id']} -> {url}")
+                self.logger.info(f"创建标签页 {tab_info['tab_id']} -> {url}")
             
             instance = {
                 'instance_id': instance_id,
@@ -167,11 +167,11 @@ class MultiURLViewBooster:
                 'errors_count': 0
             }
             
-            self.logger.info(f"✅ 实例 {instance_id} 创建成功，包含 {len(tabs)} 个标签页")
+            self.logger.info(f"实例 {instance_id} 创建成功，包含 {len(tabs)} 个标签页")
             return instance
             
         except Exception as e:
-            self.logger.error(f"❌ 创建实例 {instance_id} 失败: {e}")
+            self.logger.error(f"创建实例 {instance_id} 失败: {e}")
             return None
     
     async def setup_auth_token(self, context: BrowserContext, auth_token: str):
@@ -211,7 +211,7 @@ class MultiURLViewBooster:
             url = tab_info['url']
             tab_id = tab_info['tab_id']
             
-            self.logger.info(f"🔄 标签页 {tab_id} ({username}) 访问 {url}")
+            self.logger.info(f"标签页 {tab_id} ({username}) 访问 {url}")
             
             start_time = time.time()
             
@@ -231,13 +231,13 @@ class MultiURLViewBooster:
             self.stats['successful_views'] += 1
             
             access_time = time.time() - start_time
-            self.logger.info(f"✅ 标签页 {tab_id} 访问成功 (总计: {tab_info['views_count']}, 用时: {access_time:.1f}s)")
+            self.logger.info(f"标签页 {tab_id} 访问成功 (总计: {tab_info['views_count']}, 用时: {access_time:.1f}s)")
             
             return True
             
         except Exception as e:
             self.stats['failed_views'] += 1
-            self.logger.error(f"❌ 标签页 {tab_info['tab_id']} 访问失败: {e}")
+            self.logger.error(f"标签页 {tab_info['tab_id']} 访问失败: {e}")
             return False
     
     async def run_instance(self, instance: Dict[str, Any]):
@@ -246,7 +246,7 @@ class MultiURLViewBooster:
         account = instance['account']
         tabs = instance['tabs']
         
-        self.logger.info(f"🚀 启动实例 {instance_id} ({account.username})，管理 {len(tabs)} 个标签页")
+        self.logger.info(f"启动实例 {instance_id} ({account.username})，管理 {len(tabs)} 个标签页")
         
         try:
             while self.running:
@@ -273,7 +273,7 @@ class MultiURLViewBooster:
         """清理实例资源"""
         try:
             instance_id = instance['instance_id']
-            self.logger.info(f"🧹 清理实例 {instance_id}")
+            self.logger.info(f"清理实例 {instance_id}")
             
             # 关闭所有标签页
             for tab_info in instance.get('tabs', []):
@@ -320,11 +320,11 @@ class MultiURLViewBooster:
     
     async def start(self):
         """启动多URL浏览量提升程序"""
-        self.logger.info("🎯 Twitter多URL浏览量提升器启动")
-        self.logger.warning("⚠️  请确保遵守Twitter服务条款，仅用于合法测试目的")
+        self.logger.info("Twitter多URL浏览量提升器启动")
+        self.logger.warning("请确保遵守Twitter服务条款，仅用于合法测试目的")
         
         if not self.config.target_urls:
-            self.logger.error("❌ 没有配置目标URL")
+            self.logger.error("未配置目标URL")
             return
         
         self.running = True
@@ -344,7 +344,7 @@ class MultiURLViewBooster:
             self.config.max_tabs_per_instance
         )
         
-        self.logger.info(f"📋 配置信息:")
+        self.logger.info("配置信息:")
         self.logger.info(f"   总URL数: {num_urls}")
         self.logger.info(f"   使用账户数: {max_instances}")
         self.logger.info(f"   每实例最大标签页: {self.config.max_tabs_per_instance}")
@@ -352,7 +352,7 @@ class MultiURLViewBooster:
         self.logger.info(f"   URL分配方案: {[len(urls) for urls in url_distribution]}")
         
         # 创建浏览器实例
-        self.logger.info("🔧 创建浏览器实例...")
+        self.logger.info("创建浏览器实例...")
         creation_tasks = []
         for i, urls in enumerate(url_distribution):
             if i < len(self.config.accounts):
@@ -368,11 +368,11 @@ class MultiURLViewBooster:
         ]
         
         if not self.instances:
-            self.logger.error("❌ 没有成功创建任何浏览器实例，程序退出")
+            self.logger.error("没有成功创建任何浏览器实例，程序退出")
             return
         
         total_tabs = sum(len(inst['tabs']) for inst in self.instances)
-        self.logger.info(f"✅ 成功创建 {len(self.instances)} 个浏览器实例，共 {total_tabs} 个标签页")
+        self.logger.info(f"成功创建 {len(self.instances)} 个浏览器实例，共 {total_tabs} 个标签页")
         
         # 启动所有实例
         try:
@@ -395,7 +395,7 @@ class MultiURLViewBooster:
         # 输出统计信息
         if self.stats['start_time']:
             duration = (datetime.now() - self.stats['start_time']).total_seconds()
-            self.logger.info(f"\n📊 运行统计:")
+            self.logger.info("\n运行统计:")
             self.logger.info(f"   运行时长: {duration:.1f}秒")
             self.logger.info(f"   总访问次数: {self.stats['total_views']}")
             self.logger.info(f"   成功访问: {self.stats['successful_views']}")
@@ -410,13 +410,13 @@ class MultiURLViewBooster:
 
 async def main():
     """主函数"""
-    print("🌟 Twitter多URL浏览量提升工具 (优化版)")
+    print("Twitter多URL浏览量提升工具 (优化版)")
     print("=" * 50)
     
     # 方式1：交互式输入（默认）
     # 收集多个URL
     urls = []
-    print("\n📝 请输入要刷新的推文URL（每行一个，输入空行结束）:")
+    print("\n请输入要刷新的推文URL（每行一个，输入空行结束）：")
     
     while True:
         url = input(f"URL {len(urls) + 1}: ").strip()
@@ -424,13 +424,13 @@ async def main():
             if urls:
                 break
             else:
-                print("❌ 至少需要输入一个URL")
+                print("至少需要输入一个URL")
                 continue
         
         if 'twitter.com' in url or 'x.com' in url:
             urls.append(url)
         else:
-            print("❌ 请输入有效的Twitter/X URL")
+            print("请输入有效的Twitter/X URL")
     
     # 方式2：直接配置（取消下面的注释并注释掉上面的交互式输入）
     # urls = [
@@ -442,26 +442,26 @@ async def main():
     
     # 其他配置
     try:
-        max_instances = int(input("\n🔢 请输入最大并发实例数(默认3): ").strip() or "3")
+        max_instances = int(input("\n请输入最大并发实例数(默认3): ").strip() or "3")
     except ValueError:
         max_instances = 3
-        print("⚠️  输入无效，使用默认并发数3")
+        print("输入无效，使用默认并发数3")
     
     try:
-        max_tabs = int(input("🔢 每个实例的最大标签页数(默认3): ").strip() or "3")
+        max_tabs = int(input("每个实例的最大标签页数(默认3): ").strip() or "3")
     except ValueError:
         max_tabs = 3
-        print("⚠️  输入无效，使用默认标签页数3")
+        print("输入无效，使用默认标签页数3")
     
     try:
-        refresh_interval = int(input("⏱️  请输入刷新间隔秒数(默认10): ").strip() or "10")
+        refresh_interval = int(input("请输入刷新间隔秒数(默认10): ").strip() or "10")
     except ValueError:
         refresh_interval = 10
-        print("⚠️  输入无效，使用默认间隔10秒")
+        print("输入无效，使用默认间隔10秒")
     
-    proxy = input("🌐 请输入代理地址(留空不使用): ").strip() or None
+    proxy = input("请输入代理地址(留空不使用): ").strip() or None
     
-    headless = input("👻 是否使用无头模式? (y/N): ").strip().lower() in ['y', 'yes']
+    headless = input("是否使用无头模式? (y/N): ").strip().lower() in ['y', 'yes']
     
     # 创建配置
     config = ViewBoosterConfig(
@@ -474,19 +474,19 @@ async def main():
     )
     
     if not config.accounts:
-        print("❌ 没有可用的账户，请检查accounts.json文件")
+        print("没有可用的账户，请检查accounts.json文件")
         return
     
     # 计算资源使用情况
     actual_instances = min(max_instances, len(config.accounts), len(urls))
     total_tabs = min(len(urls), actual_instances * max_tabs)
     
-    print(f"\n📊 资源分配预览:")
+    print("\n资源分配预览:")
     print(f"   将创建 {actual_instances} 个浏览器实例")
     print(f"   总共 {total_tabs} 个标签页处理 {len(urls)} 个URL")
     print(f"   每个标签页约 {refresh_interval}秒刷新一次")
     
-    confirm = input("\n🚀 是否开始运行? (Y/n): ").strip().lower()
+    confirm = input("\n是否开始运行? (Y/n): ").strip().lower()
     if confirm == 'n':
         print("已取消运行")
         return

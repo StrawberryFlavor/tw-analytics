@@ -195,10 +195,10 @@ class FastViewBooster:
                 # 检查是否成功登录
                 final_url = str(response.url)
                 if '/home' in final_url or 'login' not in final_url.lower():
-                    self.logger.info(f"✅ 账户 {account.username} 登录成功")
+                    self.logger.info(f"账户 {account.username} 登录成功")
                     return session_cookies
                 else:
-                    self.logger.warning(f"⚠️ 账户 {account.username} 可能未正确登录，URL: {final_url}")
+                    self.logger.warning(f"账户 {account.username} 可能未正确登录，URL: {final_url}")
                     return session_cookies  # 仍然返回cookies，可能仍可使用
             else:
                 self.logger.error(f"登录验证失败: {response.status_code}")
@@ -333,17 +333,17 @@ class FastViewBooster:
                 if any(indicator in page_content.lower() for indicator in ['tweet', 'status', tweet_id]):
                     self.stats["successful_requests"] += 1
                     self.stats["views_per_url"][url] = self.stats["views_per_url"].get(url, 0) + 1
-                    self.logger.info(f"✅ Page request successful for tweet {tweet_id} (Account: {account.username})")
+                    self.logger.info(f"Page request successful for tweet {tweet_id} (Account: {account.username})")
                     self.logger.debug(f"Page content length: {len(page_content)} characters")
                     return True
                 else:
-                    self.logger.warning(f"⚠️ Page loaded but missing tweet content for {tweet_id}")
+                    self.logger.warning(f"Page loaded but missing tweet content for {tweet_id}")
                     self.stats["failed_requests"] += 1
                     return False
                     
             else:
                 self.stats["failed_requests"] += 1
-                self.logger.error(f"❌ Page request failed with status {response.status_code} for tweet {tweet_id} (Account: {account.username})")
+                self.logger.error(f"Page request failed with status {response.status_code} for tweet {tweet_id} (Account: {account.username})")
                 
                 # Log more details for authentication errors
                 if response.status_code == 401:
@@ -358,7 +358,7 @@ class FastViewBooster:
                 
         except Exception as e:
             self.stats["failed_requests"] += 1
-            self.logger.error(f"❌ Page request error for tweet {tweet_id} (Account: {account.username}): {str(e)}", exc_info=True)
+            self.logger.error(f"Page request error for tweet {tweet_id} (Account: {account.username}): {str(e)}", exc_info=True)
             return False
         finally:
             self.stats["total_requests"] += 1
@@ -407,7 +407,7 @@ class FastViewBooster:
                     # Check if target views reached
                     total_views = sum(self.stats["views_per_url"].values())
                     if total_views >= self.config.target_views:
-                        self.logger.info(f"🎯 Target views reached: {total_views}/{self.config.target_views}")
+            self.logger.info(f"Target views reached: {total_views}/{self.config.target_views}")
                         self._stop_event.set()
                         break
                     
@@ -444,13 +444,13 @@ class FastViewBooster:
         try:
             proxy_config = await self._get_proxy_config()
             if proxy_config:
-                self.logger.info("✅ 代理配置获取成功，连接测试通过")
+                self.logger.info("代理配置获取成功，连接测试通过")
                 return True
             else:
-                self.logger.info("✅ 直连模式，连接测试通过")
+                self.logger.info("直连模式，连接测试通过")
                 return True
         except Exception as e:
-            self.logger.error(f"❌ 代理连接测试失败: {e}")
+            self.logger.error(f"代理连接测试失败: {e}")
             return False
     
     async def start(self):
@@ -459,22 +459,22 @@ class FastViewBooster:
         self._stop_event.clear()
         self.stats["start_time"] = datetime.now()
         
-        self.logger.info(f"🚀 Starting Fast View Booster")
-        self.logger.info(f"📊 Target views: {self.config.target_views}")
-        self.logger.info(f"🔗 URLs: {self.config.target_urls}")
+        self.logger.info("Starting Fast View Booster")
+        self.logger.info(f"Target views: {self.config.target_views}")
+        self.logger.info(f"URLs: {self.config.target_urls}")
         
         accounts = self.account_manager.get_all_accounts()
-        self.logger.info(f"👥 Accounts: {len(accounts)}")
+        self.logger.info(f"Accounts: {len(accounts)}")
         
         # 显示智能代理管理器状态
         proxy_status = self.smart_proxy_manager.get_status()
-        self.logger.info(f"🌐 代理模式: {proxy_status['network_mode']}")
+        self.logger.info(f"代理模式: {proxy_status['network_mode']}")
         if proxy_status['proxy_pool_count'] > 0:
-            self.logger.info(f"🌍 代理池: {proxy_status['proxy_pool_count']} 个代理")
+            self.logger.info(f"代理池: {proxy_status['proxy_pool_count']} 个代理")
         
         # Test proxy connection first (non-blocking)
         if not await self._test_proxy_connection():
-            self.logger.warning("⚠️ Proxy connection test failed, but continuing with execution...")
+            self.logger.warning("Proxy connection test failed, continuing...")
         
         # Create worker tasks
         workers = []
@@ -503,7 +503,7 @@ class FastViewBooster:
     
     def stop(self):
         """Stop the fast view booster"""
-        self.logger.info("⏹️ Stopping Fast View Booster")
+        self.logger.info("Stopping Fast View Booster")
         self.running = False
         self._stop_event.set()
     
@@ -513,15 +513,15 @@ class FastViewBooster:
         total_views = sum(self.stats["views_per_url"].values())
         
         self.logger.info("=" * 50)
-        self.logger.info("📈 Fast View Booster Statistics")
-        self.logger.info(f"⏱️ Duration: {duration:.1f} seconds")
-        self.logger.info(f"📊 Total Views: {total_views}")
-        self.logger.info(f"✅ Successful Requests: {self.stats['successful_requests']}")
-        self.logger.info(f"❌ Failed Requests: {self.stats['failed_requests']}")
-        self.logger.info(f"⚡ Requests/sec: {self.stats['total_requests']/duration:.2f}")
+        self.logger.info("Fast View Booster Statistics")
+        self.logger.info(f"Duration: {duration:.1f} seconds")
+        self.logger.info(f"Total Views: {total_views}")
+        self.logger.info(f"Successful Requests: {self.stats['successful_requests']}")
+        self.logger.info(f"Failed Requests: {self.stats['failed_requests']}")
+        self.logger.info(f"Requests/sec: {self.stats['total_requests']/duration:.2f}")
         
         if total_views > 0:
-            self.logger.info(f"🎯 Views per URL:")
+            self.logger.info("Views per URL:")
             for url, views in self.stats["views_per_url"].items():
                 self.logger.info(f"   {url}: {views} views")
     

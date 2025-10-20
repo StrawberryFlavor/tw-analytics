@@ -27,10 +27,10 @@ curl -X POST http://localhost:5100/api/tweet/comprehensive \
 
 | 字段检查 | 推文类型 | action_info | primary_tweet |
 |----------|----------|-------------|---------------|
-| `type: "original"` | 原创推文 | ❌ 无 | ❌ null |
-| `type: "quote"` | 引用推文 | ✅ 有target | ✅ 被引用推文 |
-| `type: "retweet"` | 转发推文 | ✅ 有target | ✅ 被转发推文 |
-| `type: "reply"` | 回复推文 | ✅ 有target | ✅ 被回复推文 |
+| `type: "original"` | 原创推文 | 无 | null |
+| `type: "quote"` | 引用推文 | 有 target | 被引用推文 |
+| `type: "retweet"` | 转发推文 | 有 target | 被转发推文 |
+| `type: "reply"` | 回复推文 | 有 target | 被回复推文 |
 
 **核心原则**: action_info.target统一描述操作目标，消除数据冗余。
 
