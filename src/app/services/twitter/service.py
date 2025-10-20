@@ -126,7 +126,7 @@ class TwitterService(TwitterServiceInterface):
         """Synchronous wrapper for batch_get_tweets_by_urls."""
         return self._run_async(self.batch_get_tweets_by_urls(tweet_urls))
     
-    async def get_comprehensive_tweet_data(self, tweet_url: str) -> Dict[str, Any]:
+    async def get_comprehensive_data(self, tweet_url: str) -> Dict[str, Any]:
         """
         Get comprehensive data from a Twitter page including all visible content.
         This is more efficient for Playwright as it extracts everything in one page load.
@@ -180,9 +180,9 @@ class TwitterService(TwitterServiceInterface):
             self.logger.error(f"Failed to get comprehensive data for {tweet_url}: {e}")
             return self._create_error_response(tweet_url, str(e))
     
-    def get_comprehensive_tweet_data_sync(self, tweet_url: str) -> Dict[str, Any]:
-        """Synchronous wrapper for get_comprehensive_tweet_data."""
-        return self._run_async(self.get_comprehensive_tweet_data(tweet_url))
+    def get_comprehensive_data_sync(self, tweet_url: str) -> Dict[str, Any]:
+        """Synchronous wrapper for get_comprehensive_data."""
+        return self._run_async(self.get_comprehensive_data(tweet_url))
     
     def _extract_tweet_id_from_url(self, url: str) -> Optional[str]:
         """Extract tweet ID from Twitter URL."""
@@ -415,3 +415,36 @@ class TwitterService(TwitterServiceInterface):
             ]
         except Exception:
             return []
+    
+    async def cleanup(self):
+        """清理Twitter服务中的所有资源"""
+        try:
+            self.logger.info("开始清理Twitter服务资源...")
+            
+            # 清理数据管理器中的所有数据源
+            if self._data_manager and hasattr(self._data_manager, 'sources'):
+                cleanup_tasks = []
+                for source in self._data_manager.sources:
+                    if hasattr(source, 'cleanup'):
+                        cleanup_tasks.append(source.cleanup())
+                
+                if cleanup_tasks:
+                    await asyncio.gather(*cleanup_tasks, return_exceptions=True)
+                    self.logger.info(f"已清理 {len(cleanup_tasks)} 个数据源")
+            
+            # 停止异步运行器
+            if self._async_runner:
+                try:
+                    # 如果async_runner有停止方法
+                    if hasattr(self._async_runner, 'stop'):
+                        await self._async_runner.stop()
+                    elif hasattr(self._async_runner, 'cleanup'):
+                        await self._async_runner.cleanup()
+                except Exception as e:
+                    self.logger.warning(f"清理异步运行器时出错: {e}")
+            
+            self.logger.info("✅ Twitter服务资源清理完成")
+            
+        except Exception as e:
+            self.logger.error(f"❌ Twitter服务清理失败: {e}")
+            raise

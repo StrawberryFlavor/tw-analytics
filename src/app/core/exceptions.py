@@ -42,3 +42,11 @@ class NotFoundError(TwitterServiceError):
 class ValidationError(TwitterServiceError):
     """数据验证错误"""
     pass
+
+
+class RateLimitDetectedError(DataSourceError):
+    """检测到风控，需要等待"""
+    
+    def __init__(self, message: str, wait_time: int = 300):
+        super().__init__(message)
+        self.wait_time = wait_time

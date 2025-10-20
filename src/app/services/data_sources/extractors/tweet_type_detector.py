@@ -68,9 +68,23 @@ class TweetTypeDetector(BaseExtractor):
                 return "retweet"
             
             # 检查回复指标
-            reply_indicators = await tweet_element.query_selector_all('*[aria-label*="Replying to"], *[aria-label*="回复"]')
+            # 注意：需要排除指标栏的误判（如 "13 回复、12 次转帖" 等）
+            reply_indicators = await tweet_element.query_selector_all('*[aria-label*="Replying to"]')
             if reply_indicators:
                 return "reply"
+            
+            # 对于中文"回复"，需要更精确的匹配，避免指标栏误判
+            cn_reply_indicators = await tweet_element.query_selector_all('*[aria-label*="回复"]')
+            for elem in cn_reply_indicators:
+                aria_label = await elem.get_attribute('aria-label')
+                if aria_label:
+                    self.logger.debug(f"Found aria-label with '回复': {aria_label}")
+                    # 排除指标栏（包含"次转帖"、"喜欢"、"次观看"等词汇）
+                    if not any(metric in aria_label for metric in ['次转帖', '喜欢', '次观看', 'retweets', 'likes', 'views']):
+                        self.logger.info(f"Detected as reply tweet due to aria-label: {aria_label}")
+                        return "reply"
+                    else:
+                        self.logger.debug(f"Skipped metrics bar: {aria_label}")
         
         except Exception as e:
             self.logger.debug(f"Error determining tweet type: {e}")

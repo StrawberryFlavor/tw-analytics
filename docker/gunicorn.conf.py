@@ -9,7 +9,7 @@ bind = f"0.0.0.0:{os.getenv('PORT', '5100')}"
 workers = int(os.getenv('WORKERS', '2'))
 worker_class = "sync"
 worker_connections = 1000
-timeout = 120
+timeout = 300  # 5分钟超时，适应浏览器池请求
 keepalive = 5
 
 # 日志配置

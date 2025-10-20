@@ -33,6 +33,22 @@ class TwitterServiceProvider(ServiceProvider):
                 'PLAYWRIGHT_PROXY': os.getenv('PLAYWRIGHT_PROXY'),
                 'TWITTER_USERNAME': os.getenv('TWITTER_USERNAME'),
                 'TWITTER_PASSWORD': os.getenv('TWITTER_PASSWORD'),
+                # Apify配置
+                'APIFY_API_TOKEN': os.getenv('APIFY_API_TOKEN'),
+                'APIFY_ACTOR_ID': os.getenv('APIFY_ACTOR_ID', 'apidojo/tweet-scraper'),
+                'APIFY_TIMEOUT': int(os.getenv('APIFY_TIMEOUT', '120')),
+                'APIFY_ENABLE': os.getenv('APIFY_ENABLE', 'false').lower() == 'true',
+                # 数据源优先级配置
+                'DATA_SOURCE_PRIORITY': os.getenv('DATA_SOURCE_PRIORITY', 'playwright,apify,twitter_api'),
+                # 浏览器池配置
+                # 简化的浏览器池配置
+                'BROWSER_POOL_MIN_SIZE': os.getenv('BROWSER_POOL_MIN_SIZE', '2'),
+                'BROWSER_POOL_MAX_SIZE': os.getenv('BROWSER_POOL_MAX_SIZE', '6'),
+                'BROWSER_POOL_MAX_CONCURRENT_REQUESTS': os.getenv('BROWSER_POOL_MAX_CONCURRENT_REQUESTS', '3'),
+                'BROWSER_POOL_REQUEST_TIMEOUT': os.getenv('BROWSER_POOL_REQUEST_TIMEOUT', '120'),
+                'BROWSER_POOL_INSTANCE_LIFETIME': os.getenv('BROWSER_POOL_INSTANCE_LIFETIME', '1800'),
+                'BROWSER_POOL_ROTATION_ENABLED': os.getenv('BROWSER_POOL_ROTATION_ENABLED', 'true').lower() == 'true',
+                'BROWSER_POOL_ANTI_DETECTION_LEVEL': os.getenv('BROWSER_POOL_ANTI_DETECTION_LEVEL', 'medium'),
             })
             return config
         
@@ -53,29 +69,77 @@ class TwitterServiceProvider(ServiceProvider):
             return TwitterAPISource(bearer_token=config.get('TWITTER_BEARER_TOKEN'))
         
         def create_playwright_source(c: ServiceContainer) -> DataSourceInterface:
-            from ..services.data_sources.playwright import PlaywrightSource
+            from ..services.data_sources.playwright_pooled import PlaywrightPooledSource
             config = c.get('config')
-            # 可以传入配置参数
-            return PlaywrightSource()
+            # 使用池化版本，传入池配置参数
+            return PlaywrightPooledSource(
+                pool_min_size=int(config.get('BROWSER_POOL_MIN_SIZE', 2)),
+                pool_max_size=int(config.get('BROWSER_POOL_MAX_SIZE', 6)),
+                max_concurrent_requests=int(config.get('BROWSER_POOL_MAX_CONCURRENT_REQUESTS', 3))
+            )
         
-        container.register_transient('twitter_api_source', create_twitter_api_source)
-        container.register_transient('playwright_source', create_playwright_source)
+        def create_apify_source(c: ServiceContainer) -> Optional[DataSourceInterface]:
+            from ..services.data_sources.apify_source import ApifyTwitterSource
+            config = c.get('config')
+            
+            # 只有在启用并配置了API令牌时才创建
+            if config.get('APIFY_ENABLE') and config.get('APIFY_API_TOKEN'):
+                return ApifyTwitterSource(
+                    api_token=config.get('APIFY_API_TOKEN'),
+                    actor_id=config.get('APIFY_ACTOR_ID', 'apidojo/tweet-scraper'),
+                    timeout=config.get('APIFY_TIMEOUT', 120)
+                )
+            return None
+        
+        container.register_singleton('twitter_api_source', create_twitter_api_source)
+        container.register_singleton('playwright_source', create_playwright_source)
+        container.register_singleton('apify_source', create_apify_source)
         
         # 注册数据源管理器
         def create_data_source_manager(c: ServiceContainer) -> DataSourceManagerInterface:
             from ..services.data_sources.manager import DataSourceManager
-            # 注入数据源而不是让管理器自己创建
-            sources = []
             
+            # 获取数据源优先级配置
+            config = c.get('config')
+            priority_config = config.get('DATA_SOURCE_PRIORITY', 'playwright,apify,twitter_api')
+            priority_list = [name.strip().lower() for name in priority_config.split(',')]
+            
+            # 创建数据源映射表
+            source_map = {}
+            
+            # Playwright数据源
             try:
-                sources.append(c.get('twitter_api_source'))
+                playwright_source = c.get('playwright_source')
+                if playwright_source:
+                    source_map['playwright'] = playwright_source
+            except Exception:
+                pass
+            
+            # Apify数据源
+            try:
+                apify_source = c.get('apify_source')
+                if apify_source:
+                    source_map['apify'] = apify_source
             except Exception:
                 pass
                 
+            # TwitterAPI数据源
             try:
-                sources.append(c.get('playwright_source'))
+                twitter_api_source = c.get('twitter_api_source')
+                if twitter_api_source:
+                    source_map['twitter_api'] = twitter_api_source
             except Exception:
                 pass
+            
+            # 根据优先级配置排序数据源
+            sources = []
+            for source_name in priority_list:
+                if source_name in source_map:
+                    sources.append(source_map[source_name])
+            
+            # 记录实际使用的数据源顺序
+            source_names = [source.name for source in sources]
+            print(f"数据源优先级: {' > '.join(source_names)}")
             
             return DataSourceManager(sources=sources)
         

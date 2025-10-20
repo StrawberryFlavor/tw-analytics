@@ -154,31 +154,7 @@ def batch_get_tweets_by_urls():
         return jsonify(response), status_code
 
 
-@bp.route('/tweet/comprehensive', methods=['POST'])
-def get_comprehensive_tweet_data():
-    """获取推特页面的综合数据（包括主推文、线程、相关推文等）"""
-    try:
-        data = request.get_json()
-        if not data or 'url' not in data:
-            return jsonify({
-                "success": False,
-                "error": "Invalid parameters",
-                "message": "URL parameter is required"
-            }), 400
-        
-        tweet_url = data['url']
-        twitter_service = current_app.container.get('twitter_service')
-        comprehensive_data = twitter_service.get_comprehensive_tweet_data_sync(tweet_url)
-        
-        return jsonify({
-            "success": True,
-            "data": comprehensive_data,
-            "message": "Comprehensive data extraction completed"
-        })
-        
-    except Exception as e:
-        response, status_code = handle_twitter_exception(e)
-        return jsonify(response), status_code
+# 综合数据接口已移动到 comprehensive.py 蓝图，避免路由冲突
 
 
 @bp.route('/tweet/<tweet_id>')
@@ -423,6 +399,174 @@ def reset_data_sources():
         return jsonify({
             "success": True,
             "message": "数据源状态已重置"
+        })
+        
+    except Exception as e:
+        response, status_code = handle_twitter_exception(e)
+        return jsonify(response), status_code
+
+
+@bp.route('/tweet/comprehensive-apify', methods=['POST'])
+def get_comprehensive_tweet_apify():
+    """使用Apify获取推文综合数据"""
+    try:
+        data = request.get_json()
+        if not data or 'url' not in data:
+            return jsonify({
+                "success": False,
+                "error": "Invalid parameters",
+                "message": "URL parameter is required"
+            }), 400
+        
+        tweet_url = data['url']
+        
+        # 获取Apify数据源
+        try:
+            apify_source = current_app.container.get('apify_source')
+            if not apify_source:
+                return jsonify({
+                    "success": False,
+                    "error": "Service unavailable",
+                    "message": "Apify data source is not available. Please check APIFY_ENABLE and APIFY_API_TOKEN configuration."
+                }), 503
+        except Exception:
+            return jsonify({
+                "success": False,
+                "error": "Service unavailable",
+                "message": "Apify data source is not configured"
+            }), 503
+        
+        # 使用异步运行器执行数据获取
+        async_runner = current_app.container.get('async_runner')
+        
+        async def get_data():
+            return await apify_source.get_comprehensive_data(tweet_url)
+        
+        comprehensive_data = async_runner.run(get_data())
+        
+        if not comprehensive_data:
+            return jsonify({
+                "success": False,
+                "error": "No data found",
+                "message": "Unable to retrieve tweet data from Apify"
+            }), 404
+        
+        # 使用响应格式化器格式化数据
+        formatter = current_app.container.get('response_formatter')
+        formatted_data = formatter.format_response(comprehensive_data)
+        
+        return jsonify({
+            "success": True,
+            "data": formatted_data,
+            "meta": {
+                "source": "apify",
+                "timestamp": comprehensive_data.get('extraction_metadata', {}).get('timestamp'),
+                "total_tweets": comprehensive_data.get('extraction_metadata', {}).get('total_tweets_found', 0)
+            }
+        })
+        
+    except Exception as e:
+        response, status_code = handle_twitter_exception(e)
+        return jsonify(response), status_code
+
+
+@bp.route('/tweets/batch-apify', methods=['POST'])
+def batch_get_tweets_apify():
+    """使用Apify批量获取推文数据"""
+    try:
+        data = request.get_json()
+        if not data or 'urls' not in data:
+            return jsonify({
+                "success": False,
+                "error": "Invalid parameters",
+                "message": "URLs array is required"
+            }), 400
+        
+        tweet_urls = data['urls']
+        if not isinstance(tweet_urls, list):
+            return jsonify({
+                "success": False,
+                "error": "Invalid parameters",
+                "message": "URLs must be an array"
+            }), 400
+        
+        if len(tweet_urls) > 10:  # 限制批量请求数量
+            return jsonify({
+                "success": False,
+                "error": "Invalid parameters",
+                "message": "Batch requests support maximum 10 URLs for Apify source"
+            }), 400
+        
+        # 获取Apify数据源
+        try:
+            apify_source = current_app.container.get('apify_source')
+            if not apify_source:
+                return jsonify({
+                    "success": False,
+                    "error": "Service unavailable",
+                    "message": "Apify data source is not available"
+                }), 503
+        except Exception:
+            return jsonify({
+                "success": False,
+                "error": "Service unavailable",
+                "message": "Apify data source is not configured"
+            }), 503
+        
+        # 获取异步运行器和格式化器
+        async_runner = current_app.container.get('async_runner')
+        formatter = current_app.container.get('response_formatter')
+        
+        async def batch_get_data():
+            import asyncio
+            tasks = []
+            for url in tweet_urls:
+                tasks.append(apify_source.get_comprehensive_data(url))
+            
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            return results
+        
+        # 执行批量获取
+        results = async_runner.run(batch_get_data())
+        
+        # 处理结果
+        formatted_results = []
+        errors = []
+        
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                errors.append({
+                    "url": tweet_urls[i],
+                    "error": str(result)
+                })
+            elif result:
+                formatted_data = formatter.format_response(result)
+                formatted_results.append({
+                    "url": tweet_urls[i],
+                    "data": formatted_data,
+                    "meta": {
+                        "source": "apify",
+                        "timestamp": result.get('extraction_metadata', {}).get('timestamp'),
+                        "total_tweets": result.get('extraction_metadata', {}).get('total_tweets_found', 0)
+                    }
+                })
+            else:
+                errors.append({
+                    "url": tweet_urls[i],
+                    "error": "No data found"
+                })
+        
+        return jsonify({
+            "success": True,
+            "data": {
+                "results": formatted_results,
+                "errors": errors,
+                "summary": {
+                    "total_requested": len(tweet_urls),
+                    "successful": len(formatted_results),
+                    "failed": len(errors)
+                }
+            }
         })
         
     except Exception as e:

@@ -9,6 +9,7 @@ from typing import Dict
 from playwright.async_api import Locator
 
 from .base_extractor import BaseExtractor
+from .rate_limit_detector import rate_limit_detector
 
 
 def parse_count_text(text: str) -> int:
@@ -42,6 +43,27 @@ def parse_count_text(text: str) -> int:
 
 class TweetMetricsExtractor(BaseExtractor):
     """推文指标提取器，专注于互动数据提取"""
+    
+    VIEWS_SELECTORS = [
+        'text=/\\d+\\s*Views?/i',
+        'text=/\\d+\\s*浏览/i', 
+        '[aria-label*="view" i]',
+        '[aria-label*="浏览" i]'
+    ]
+    
+    TIMESTAMP_SELECTORS = [
+        'time',
+        '[datetime]',
+        'a[href*="/status/"]',
+        '[data-testid*="time"]'
+    ]
+    
+    VIEW_PATTERNS = [
+        r'(\d+)\s*Views?\b',
+        r'(\d+[.,]\d+[KMB万]?)\s*Views?\b',
+        r'(\d+[KMB万])\s*Views?\b',
+        r'(\d+)\s*(?:次?浏览|观看)'
+    ]
     
     async def extract_all_metrics(self, tweet_element: Locator) -> Dict[str, int]:
         """提取推文的所有可见指标"""
@@ -156,7 +178,102 @@ class TweetMetricsExtractor(BaseExtractor):
     async def _extract_view_count_comprehensive(self, tweet_element: Locator) -> int:
         """综合提取浏览量"""
         try:
-            # 方法1：查找包含"views"或"浏览"的元素
+            await self._wait_for_views_data(tweet_element)
+            
+            view_count = await self._extract_views_near_timestamp(tweet_element)
+            if view_count > 0:
+                return view_count
+            
+            view_count = await self._extract_views_from_elements(tweet_element)
+            if view_count > 0:
+                return view_count
+            
+            view_count = await self._extract_views_from_page_improved(tweet_element)
+            if view_count > 0:
+                return view_count
+            
+            return await self._extract_views_from_page_content(tweet_element)
+        
+        except Exception as e:
+            self.logger.debug(f"Error in comprehensive view extraction: {e}")
+            return 0
+    
+    async def _wait_for_views_data(self, tweet_element: Locator, max_wait_seconds: int = 3):
+        """等待views数据完全加载，支持风控检测"""
+        try:
+            page = tweet_element.page
+            
+            for selector in self.VIEWS_SELECTORS:
+                success = await rate_limit_detector.safe_wait_for_selector(
+                    page, selector, timeout=max_wait_seconds * 1000, state='visible'
+                )
+                if success:
+                    return
+            
+            # 如果没有找到views选择器，等待网络空闲
+            try:
+                await page.wait_for_load_state('networkidle', timeout=max_wait_seconds * 1000)
+            except Exception as network_error:
+                # 网络等待错误也可能触发风控
+                if rate_limit_detector.is_rate_limited(network_error):
+                    await rate_limit_detector.handle_rate_limit(network_error, "等待网络空闲状态")
+            
+        except Exception as e:
+            self.logger.debug(f"Error waiting for views data: {e}")
+    
+    async def _extract_views_near_timestamp(self, tweet_element: Locator) -> int:
+        """在时间戳附近精确查找views数据"""
+        try:
+            for selector in self.TIMESTAMP_SELECTORS:
+                timestamp_elements = await tweet_element.query_selector_all(selector)
+                
+                for timestamp_element in timestamp_elements:
+                    view_count = await self._search_views_in_container(timestamp_element)
+                    if view_count > 0:
+                        return view_count
+            
+            return 0
+            
+        except Exception as e:
+            self.logger.debug(f"Error extracting views near timestamp: {e}")
+            return 0
+    
+    async def _search_views_in_container(self, container_element: Locator) -> int:
+        """在指定容器及其父级容器中搜索views数据"""
+        try:
+            search_elements = [container_element]
+            
+            try:
+                parent = await container_element.query_selector('xpath=..')
+                if parent:
+                    search_elements.append(parent)
+                    grandparent = await parent.query_selector('xpath=..')
+                    if grandparent:
+                        search_elements.append(grandparent)
+            except:
+                pass
+            
+            for element in search_elements:
+                text = await element.text_content()
+                if not text:
+                    continue
+                
+                for pattern in self.VIEW_PATTERNS:
+                    matches = re.findall(pattern, text, re.IGNORECASE)
+                    for match in matches:
+                        count = parse_count_text(match)
+                        if count > 0:
+                            return count
+            
+            return 0
+            
+        except Exception as e:
+            self.logger.debug(f"Error searching views in container: {e}")
+            return 0
+    
+    async def _extract_views_from_elements(self, tweet_element: Locator) -> int:
+        """从推文元素中提取views数据"""
+        try:
             view_elements = await tweet_element.query_selector_all('*')
             
             for element in view_elements:
@@ -165,42 +282,150 @@ class TweetMetricsExtractor(BaseExtractor):
                     continue
                 
                 text_lower = text.lower()
-                
-                # 检查是否包含浏览量关键词
-                if any(keyword in text_lower for keyword in ['view', '浏览', '次浏览', '观看']):
-                    # 查找数字模式
-                    if re.search(r'\d+[.,]?\d*[KMB万千万亿]?\s*(?:view|浏览|次浏览|观看)', text, re.IGNORECASE):
+                if any(keyword in text_lower for keyword in ['view', '浏览', '观看', '查看']):
+                    if re.search(r'\d+[.,]?\d*[KMB万千万亿]?\s*(?:view|浏览|观看|查看)', text, re.IGNORECASE):
                         count = parse_count_text(text)
                         if count > 0:
-                            self.logger.debug(f"Found view count: '{text}' -> {count}")
                             return count
                 
-                # 特殊模式：纯数字后跟特定单位可能是浏览量
                 number_match = re.search(r'^([\d,\.]+[KMB万千万亿]?)\s*$', text.strip())
                 if number_match:
                     count = parse_count_text(number_match.group(1))
-                    if count > 1000:  # 浏览量通常较大
-                        # 验证这个元素的位置是否像浏览量
+                    if count > 1000:
                         element_html = await element.inner_html()
                         if 'analytics' in element_html.lower():
-                            self.logger.debug(f"Found view count in analytics: '{text}' -> {count}")
                             return count
-                        
-                        # 检查是否在正确的位置（通常在推文底部）
-                        parent_text = ""
-                        try:
-                            parent = await element.query_selector('xpath=..')
-                            if parent:
-                                parent_text = await parent.text_content() or ""
-                        except:
-                            pass
-                        
-                        if any(indicator in parent_text.lower() for indicator in ['analytics', 'view', '浏览']):
-                            self.logger.debug(f"Found view count with context: '{text}' -> {count}")
+            
+            return 0
+            
+        except Exception as e:
+            self.logger.debug(f"Error extracting views from elements: {e}")
+            return 0
+    
+    async def _extract_views_from_page_improved(self, tweet_element: Locator) -> int:
+        """使用JavaScript提取views数据"""
+        try:
+            page = tweet_element.page
+            
+            js_views_extractor = r"""
+            () => {
+                const walker = document.createTreeWalker(
+                    document.body,
+                    NodeFilter.SHOW_TEXT,
+                    {
+                        acceptNode: function(node) {
+                            const text = node.textContent.toLowerCase();
+                            return (text.includes('view') || text.includes('浏览')) 
+                                ? NodeFilter.FILTER_ACCEPT 
+                                : NodeFilter.FILTER_REJECT;
+                        }
+                    }
+                );
+                
+                const viewsData = [];
+                let node;
+                while (node = walker.nextNode()) {
+                    const text = node.textContent;
+                    
+                    const patterns = [
+                        /(\d+)\s*Views?\b/gi,
+                        /(\d+[.,]\d+[KMB万]?)\s*Views?\b/gi,
+                        /(\d+[KMB万])\s*Views?\b/gi,
+                        /(\d+)\s*(?:次?浏览|观看)/gi
+                    ];
+                    
+                    for (const pattern of patterns) {
+                        const matches = text.match(pattern);
+                        if (matches) {
+                            for (const match of matches) {
+                                const numberMatch = match.match(/(\d+(?:[.,]\d+)?[KMB万]?)/);
+                                if (numberMatch) {
+                                    viewsData.push({
+                                        text: match.trim(),
+                                        number: numberMatch[1]
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                return viewsData;
+            }
+            """
+            
+            views_data = await page.evaluate(js_views_extractor)
+            
+            if views_data and len(views_data) > 0:
+                for data in views_data:
+                    count = parse_count_text(data['number'])
+                    if count > 0:
+                        return count
+            
+            return 0
+            
+        except Exception as e:
+            self.logger.debug(f"Error in improved page views extraction: {e}")
+            return 0
+    
+    async def _extract_views_from_page_content(self, tweet_element: Locator) -> int:
+        """从页面内容提取views数据"""
+        try:
+            page = tweet_element.page
+            page_text = await page.content()
+            
+            for pattern in self.VIEW_PATTERNS:
+                views_matches = re.findall(pattern, page_text, re.IGNORECASE)
+                if views_matches:
+                    for match in views_matches:
+                        count = parse_count_text(match)
+                        if count > 0:
                             return count
+            
+            return 0
+            
+        except Exception as e:
+            self.logger.debug(f"Error extracting views from page content: {e}")
+            return 0
+    
+    async def _extract_views_from_page_context(self, tweet_element: Locator) -> int:
+        """从页面上下文（时间戳区域）提取views数据"""
+        try:
+            # 获取页面引用以搜索整个页面
+            page = tweet_element.page
+            
+            # 更广泛的元素选择，包括所有可能包含views的元素
+            all_elements = await page.query_selector_all('span, div, time, a')
+            
+            for element in all_elements:
+                text = await element.text_content()
+                if not text:
+                    continue
+                
+                # 查找包含Views的文本
+                if 'Views' in text or 'views' in text:
+                    # 查找时间戳后的views模式
+                    views_match = re.search(r'(\d+)\s*Views?\b', text, re.IGNORECASE)
+                    if views_match:
+                        count = int(views_match.group(1))
+                        return count
+                
+                # 检查父元素或兄弟元素中的views
+                try:
+                    parent = await element.query_selector('xpath=..')
+                    if parent:
+                        parent_text = await parent.text_content()
+                        if parent_text and 'Views' in parent_text:
+                            parent_views_match = re.search(r'(\d+)\s*Views?\b', parent_text, re.IGNORECASE)
+                            if parent_views_match:
+                                count = int(parent_views_match.group(1))
+                                self.logger.debug(f"Found views in parent context: '{parent_text}' -> {count}")
+                                return count
+                except:
+                    pass
         
         except Exception as e:
-            self.logger.debug(f"Error in comprehensive view extraction: {e}")
+            self.logger.debug(f"Error extracting views from page context: {e}")
         
         return 0
     

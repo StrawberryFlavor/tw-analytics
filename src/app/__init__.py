@@ -10,7 +10,8 @@ from flask_cors import CORS
 from .config import get_config
 from .api import bp as api_bp
 from .api.comprehensive import comprehensive_bp
-from .api.cookie_status import cookie_status_bp
+from .api.view_booster import view_booster_bp
+# from .api.cookie_status import cookie_status_bp  # 已移除cookie系统
 from .core import get_app_container, TwitterServiceProvider, FlaskIntegrationProvider
 
 
@@ -45,7 +46,7 @@ def create_app(config_name=None):
     # 配置日志 - 总是配置日志，包括调试模式
     logging.basicConfig(
         level=logging.INFO,
-        format='%(asctime)s %(levelname)s %(name)s: %(message)s',
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         handlers=[
             logging.StreamHandler()  # 输出到控制台
         ]
@@ -60,7 +61,8 @@ def create_app(config_name=None):
     # 注册蓝图
     app.register_blueprint(api_bp)
     app.register_blueprint(comprehensive_bp)
-    app.register_blueprint(cookie_status_bp)
+    app.register_blueprint(view_booster_bp)
+    # app.register_blueprint(cookie_status_bp)  # 已移除cookie系统
     
     # 根路由
     @app.route('/')
@@ -71,7 +73,8 @@ def create_app(config_name=None):
             "health_check": "/api/v1/health",
             "comprehensive_extraction": "/api/tweet/comprehensive",
             "auth_status": "/api/v1/auth/status",
-            "cookie_refresh": "/api/v1/auth/refresh"
+            "cookie_refresh": "/api/v1/auth/refresh",
+            "view_booster": "/api/v1/view-booster"
         }
     
     # 全局错误处理
@@ -83,5 +86,7 @@ def create_app(config_name=None):
     def internal_error(error):
         app.logger.error(f'Server error: {error}')
         return {"success": False, "error": "Internal server error"}, 500
+    
+    # 浏览器池采用延迟初始化策略，在首次请求时自动创建
     
     return app

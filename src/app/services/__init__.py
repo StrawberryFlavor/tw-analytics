@@ -18,7 +18,7 @@ from ..core.exceptions import (
 from .data_sources import (
     BaseDataSource,
     TwitterAPISource,
-    PlaywrightSource,
+    # PlaywrightSource,  # 已移除，统一使用PlaywrightPooledSource
     DataSourceManager
 )
 
@@ -55,7 +55,7 @@ __all__ = [
     # Data sources
     'BaseDataSource',
     'TwitterAPISource',
-    'PlaywrightSource',
+    # 'PlaywrightSource',  # 已移除，统一使用PlaywrightPooledSource
     'DataSourceManager',
     
     # Twitter services

@@ -13,6 +13,7 @@ from .tweet_media_extractor import TweetMediaExtractor
 from .tweet_metrics_extractor import TweetMetricsExtractor
 from .tweet_type_detector import TweetTypeDetector
 from .special_tweet_extractor import SpecialTweetExtractor
+from .rate_limit_detector import rate_limit_detector
 
 
 class TweetDataExtractor(BaseExtractor):
@@ -51,7 +52,16 @@ class TweetDataExtractor(BaseExtractor):
             self.logger.info(f"发现 {len(tweet_elements)} 个推文元素")
             
             if not tweet_elements:
-                return self._create_empty_result()
+                # 进一步检查页面状态，确定推文不存在的具体原因
+                reason = await self._analyze_no_tweet_reason()
+                self.logger.info(f"推文不存在的原因分析: {reason}")
+                
+                # 根据原因决定是否需要标记错误
+                if reason in ['rate_limited', 'network_error', 'page_load_error']:
+                    # 这些是技术问题，不应该标记为推文不存在
+                    raise Exception(f"技术问题导致无法访问推文: {reason}")
+                
+                return self._create_empty_result(reason)
             
             # 提取每个推文的数据
             all_tweets = []
@@ -165,22 +175,134 @@ class TweetDataExtractor(BaseExtractor):
         
         return None
     
-    async def _wait_for_page_load(self):
-        """等待页面加载完成"""
-        try:
-            # 等待推文元素出现
-            await self.page.wait_for_selector('[data-testid="tweet"]', timeout=10000)
-            
-            # 等待网络空闲
+    async def _wait_for_page_load(self, max_retries: int = 2):
+        """等待页面加载完成，支持刷新重试和风控检测"""
+        import asyncio
+        
+        for attempt in range(max_retries + 1):
             try:
-                await self.page.wait_for_load_state('networkidle', timeout=5000)
-                self.logger.debug("页面达到网络空闲状态")
-            except Exception:
-                # 如果网络空闲超时，继续执行
-                self.logger.debug("网络空闲超时，但继续执行")
+                self.logger.info(f"开始等待页面加载（尝试 {attempt + 1}/{max_retries + 1}），当前URL: {self.page.url}")
+                
+                # 首先检查页面标题，确认没有被重定向到登录页面
+                try:
+                    title = await self.page.title()
+                    self.logger.info(f"页面标题: {title}")
+                    if "login" in title.lower() or "sign in" in title.lower():
+                        self.logger.warning("检测到登录页面，可能需要重新认证")
+                except Exception:
+                    pass
+                
+                # 使用风控检测器安全地等待推文元素
+                success = await rate_limit_detector.safe_wait_for_selector(
+                    self.page, '[data-testid="tweet"]', timeout=5000
+                )
+                
+                if success:
+                    self.logger.info("找到推文元素")
+                    return  # 成功找到推文元素，退出重试循环
+                else:
+                    # safe_wait_for_selector失败但没有抛出异常（通常是风控等待后仍失败）
+                    raise Exception("等待推文元素失败（可能触发风控）")
+                
+            except Exception as e:
+                self.logger.warning(f"等待页面加载时出错（尝试 {attempt + 1}/{max_retries + 1}): {e}")
+                
+                # 非超时错误也可能需要风控处理，但这里由safe_wait_for_selector已经处理了
+                # 记录当前页面状态以便调试
+                try:
+                    current_url = self.page.url
+                    title = await self.page.title()
+                    self.logger.warning(f"页面加载失败时的状态 - URL: {current_url}, 标题: {title}")
+                except Exception:
+                    pass
+                
+                # 如果不是最后一次尝试，执行页面刷新重试
+                if attempt < max_retries:
+                    self.logger.info(f"🔄 模拟F5刷新页面，准备重试...")
+                    try:
+                        await self.page.reload(wait_until='domcontentloaded', timeout=10000)
+                        # 给页面一些时间加载
+                        await asyncio.sleep(2)
+                        self.logger.info("页面刷新完成")
+                    except Exception as reload_error:
+                        self.logger.error(f"页面刷新失败: {reload_error}")
+                else:
+                    # 最后一次尝试也失败了
+                    self.logger.error(f"页面加载失败，已重试 {max_retries} 次")
+    
+    async def _analyze_no_tweet_reason(self) -> str:
+        """分析推文不存在的具体原因"""
+        try:
+            # 1. 检查页面URL是否正确
+            current_url = self.page.url
+            if 'x.com' not in current_url and 'twitter.com' not in current_url:
+                return 'redirected_away'
+            
+            # 2. 检查页面标题
+            title = await self.page.title()
+            if not title or title.strip() == '':
+                return 'page_load_error'
+            
+            # 3. 检查是否有登录提示
+            login_indicators = [
+                '[data-testid="loginButton"]',
+                '[data-testid="signupButton"]', 
+                'text="Log in"',
+                'text="Sign up"'
+            ]
+            
+            for indicator in login_indicators:
+                if await self.page.query_selector(indicator):
+                    return 'login_required'
+            
+            # 4. 检查是否有风控提示
+            rate_limit_indicators = [
+                'text="Rate limit exceeded"',
+                'text="Too many requests"',
+                'text="Please try again later"',
+                'text="Something went wrong"',
+                '[data-testid="error"]'
+            ]
+            
+            for indicator in rate_limit_indicators:
+                if await self.page.query_selector(indicator):
+                    return 'rate_limited'
+            
+            # 5. 检查是否有"推文不存在"的明确提示
+            not_found_indicators = [
+                'text="This post is unavailable"',
+                'text="This Tweet was deleted"',
+                'text="This account doesn\'t exist"',
+                'text="Sorry, that page doesn\'t exist"',
+                '[data-testid="empty_state"]'
+            ]
+            
+            for indicator in not_found_indicators:
+                if await self.page.query_selector(indicator):
+                    return 'tweet_not_found'
+            
+            # 6. 检查是否有私密或受保护的推文提示
+            protected_indicators = [
+                'text="These Tweets are protected"',
+                'text="This account\'s Tweets are protected"',
+                'text="You\'re not authorized"'
+            ]
+            
+            for indicator in protected_indicators:
+                if await self.page.query_selector(indicator):
+                    return 'tweet_protected'
+            
+            # 7. 检查是否是一个正常加载的页面但就是没有推文
+            page_content = await self.page.content()
+            if len(page_content) < 1000:  # 页面内容太少，可能是加载问题
+                return 'page_load_error'
+            
+            # 8. 如果以上都不是，可能是推文确实不存在，但页面没有明确提示
+            return 'tweet_possibly_not_found'
             
         except Exception as e:
-            self.logger.warning(f"等待页面加载时出错: {e}")
+            self.logger.error(f"分析推文不存在原因时发生错误: {e}")
+            return 'analysis_error'
     
     async def _extract_page_context(self) -> Dict[str, Any]:
         """提取页面上下文信息"""
@@ -211,7 +333,7 @@ class TweetDataExtractor(BaseExtractor):
             self.logger.debug(f"提取页面上下文失败: {e}")
             return {'page_type': 'tweet', 'theme': 'unknown', 'language': 'unknown'}
     
-    def _create_empty_result(self) -> Dict[str, Any]:
+    def _create_empty_result(self, reason: str = 'No tweets found') -> Dict[str, Any]:
         """创建空结果"""
         return {
             'primary_tweet': None,
@@ -222,7 +344,8 @@ class TweetDataExtractor(BaseExtractor):
                 'timestamp': self._get_current_timestamp(),
                 'total_tweets_found': 0,
                 'source': 'playwright',
-                'error': 'No tweets found'
+                'error': reason,
+                'detailed_reason': reason  # 添加详细原因便于上层判断
             }
         }
     

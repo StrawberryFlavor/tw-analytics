@@ -33,8 +33,9 @@ class BaseDataSource(DataSourceInterface, ABC):
         if self._rate_limit_reset and datetime.now() < self._rate_limit_reset:
             return False
         
-        # Check general health
-        return self._healthy and self._error_count < 5
+        # 对于浏览器池等复杂数据源，简单的错误计数不适用
+        # 只检查基本健康状态，不限制错误次数
+        return self._healthy
     
     def handle_success(self):
         """Handle successful operation."""

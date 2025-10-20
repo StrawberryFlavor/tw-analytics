@@ -15,16 +15,20 @@ services:
     env_file:
       - ../.env
     volumes:
-      - "../instance:/app/instance"  # 挂载Cookie目录
+      - "${PWD}/instance:/app/instance:rw"  # 挂载实例目录（已移除cookie系统）
+      - "${PWD}/src/config/accounts.json:/app/src/config/accounts.json:ro"  # 挂载账户配置文件（只读）
+    # user: "1000:1000"  # Dockerfile中已配置app用户，无需覆盖
     environment:
       - TWITTER_BEARER_TOKEN=${TWITTER_BEARER_TOKEN}
-      - TWITTER_USERNAME=${TWITTER_USERNAME}
-      - TWITTER_PASSWORD=${TWITTER_PASSWORD}
+      # 账户配置已迁移到统一账户管理系统
+      # - TWITTER_USERNAME=${TWITTER_USERNAME}  # 已迁移到src/config/accounts.json
+      # - TWITTER_PASSWORD=${TWITTER_PASSWORD}  # 已迁移到src/config/accounts.json
       - FLASK_ENV=${FLASK_ENV:-production}
       - SECRET_KEY=${SECRET_KEY:-production-secret-key}
       - HOST=0.0.0.0
       - PORT=5100
       - PLAYWRIGHT_HEADLESS=true
+      - PLAYWRIGHT_PROXY=${PLAYWRIGHT_PROXY:-}
       - MAX_TWEETS_PER_REQUEST=${MAX_TWEETS_PER_REQUEST:-100}
       - MAX_BATCH_SIZE=${MAX_BATCH_SIZE:-50}
       - DEFAULT_TWEET_COUNT=${DEFAULT_TWEET_COUNT:-10}

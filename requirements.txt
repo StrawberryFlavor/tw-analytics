@@ -1,10 +1,29 @@
-tweepy>=4.14.0
+# Core dependencies
 flask>=2.3.0
 flask-cors>=4.0.0
 python-dotenv>=1.0.0
-gunicorn>=21.2.0
-snscrape
-aiohttp
+
+# HTTP clients
+aiohttp>=3.9.0
+httpx>=0.25.0
+# httpx[socks]>=0.25.0  # SOCKS5 proxy support for Apify - 已禁用
+# tweepy>=4.14.0  # Twitter API - 已禁用
+# snscrape  # Twitter scraping - 已禁用，使用Playwright替代
+
+# Browser automation
 playwright>=1.40.0
+
+# HTML parsing
 beautifulsoup4>=4.12.0
 lxml>=4.9.0
+
+# Server deployment
+gunicorn>=21.2.0
+waitress>=3.0.0  # Windows compatibility
+
+# Database
+mysql-connector-python>=8.2.0
+aiomysql>=0.2.0
+
+# Utils
+filelock>=3.12.0

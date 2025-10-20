@@ -1,0 +1,24 @@
+{
+  "accounts": [
+    {
+      "username": "your_twitter_username1",
+      "password": "your_password1",
+      "email": "your_email1@example.com",
+      "email_password": "your_email_password1",
+      "phone_suffix": "1234",
+      "tfa_secret": "your_2fa_secret1",
+      "auth_token": "your_auth_token1",
+      "status": "active"
+    },
+    {
+      "username": "your_twitter_username2", 
+      "password": "your_password2",
+      "email": "your_email2@example.com",
+      "email_password": "your_email_password2",
+      "phone_suffix": "5678",
+      "tfa_secret": "your_2fa_secret2",
+      "auth_token": "your_auth_token2",
+      "status": "active"
+    }
+  ]
+}

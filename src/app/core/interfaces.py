@@ -60,7 +60,7 @@ class TwitterServiceInterface(Protocol):
         """获取推文指标"""
         ...
     
-    async def get_comprehensive_tweet_data(self, tweet_url: str) -> Dict[str, Any]:
+    async def get_comprehensive_data(self, tweet_url: str) -> Dict[str, Any]:
         """获取综合推文数据"""
         ...
     

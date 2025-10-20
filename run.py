@@ -24,7 +24,7 @@ try:
     config_class.validate()
 except ValueError as e:
     print(f"❌ 配置错误: {e}")
-    print("请设置 TWITTER_BEARER_TOKEN 环境变量或使用 config/.env.example 创建 .env 文件")
+    print("请设置 TWITTER_BEARER_TOKEN 环境变量或使用 .env.example 创建 .env 文件")
     exit(1)
 
 if __name__ == '__main__':

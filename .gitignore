@@ -58,6 +58,11 @@ htmlcov/
 # Temporary files
 *.tmp
 temp/
+*.bak
+*.backup
+
+# Lock files
+*.lock
 
 # Cookie management backup files
 *_backup.py
